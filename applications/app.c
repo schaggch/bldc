@@ -51,6 +51,17 @@ const app_configuration* app_get_configuration(void) {
  * The new configuration to use.
  */
 void app_set_configuration(app_configuration *conf) {
+#ifdef HW_SPEEDPED75100
+	// PB6 belongs exclusively to the pedal sensor on this hardware profile.
+	conf->servo_out_enable = false;
+	if (conf->app_to_use != APP_ADC && conf->app_to_use != APP_ADC_UART &&
+            conf->app_to_use != APP_NONE && conf->app_to_use != APP_UART) {
+		conf->app_to_use = APP_ADC_UART;
+	}
+	// Bound the delay between permission loss and the next ADC output update.
+	if (conf->app_adc_conf.update_rate_hz < 500) conf->app_adc_conf.update_rate_hz = 500;
+	speedped_pedal_configure();
+#endif
 	bool app_changed = appconf.app_to_use != conf->app_to_use;
 
 	if (!app_changed) {
@@ -176,6 +187,9 @@ void app_set_configuration(app_configuration *conf) {
 #endif
 
 	rfhelp_update_conf(&appconf.app_nrf_conf);
+#ifdef HW_SPEEDPED75100
+	speedped_pedal_configure();
+#endif
 }
 
 /**

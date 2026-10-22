@@ -2304,7 +2304,11 @@ int mcpwm_read_hall_phase(void) {
 }
 
 static int read_hall(void) {
+#ifdef HW_SPEEDPED75100
+    return 0; // PC6/7/8 belong to the bike inputs, not BLDC commutation.
+#else
 	return READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
+#endif
 }
 
 /*

@@ -73,6 +73,17 @@ bool encoder_init(volatile mc_configuration *conf) {
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 
+#ifdef HW_SPEEDPED75100
+    // PC6/7/8 are exclusively SH, AH and wheel inputs on this profile.
+    // Never start an encoder driver that could change their GPIO modes.
+    SENSOR_PORT_5V();
+    palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
+    m_encoder_type_now = ENCODER_TYPE_NONE;
+    return false;
+#endif
+
 	switch (conf->m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI: {
 		SENSOR_PORT_5V();

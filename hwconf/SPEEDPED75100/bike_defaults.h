@@ -1,0 +1,2 @@
+/* Generated stock SPEEDPED values. */
+#define SPEEDPED_BIKE_DEFAULT_VALUES 2250,1,0,0,500,5,2,1,100,500,10000,15,0,0,100,100

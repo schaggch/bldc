@@ -90,6 +90,13 @@ uint8_t utils_second_motor_id(void) {
  * The state of the three hall sensors.
  */
 int utils_read_hall_hw(bool is_second_motor, int samples) {
+#ifdef HW_SPEEDPED75100
+    // Assist buttons and wheel pulses are not motor position sensors. In
+    // particular, automatic Hall detection must not learn them as a Hall table.
+    (void)is_second_motor;
+    (void)samples;
+    return 0; // Invalid Hall state.
+#endif
 	samples = 1 + 2 * samples;
 
 	int h1 = 0, h2 = 0, h3 = 0;

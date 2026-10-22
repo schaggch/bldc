@@ -778,6 +778,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_CUSTOM_HW_DATA:
+#ifdef HW_SPEEDPED75100
+        // Read-only pin snapshot; reply on the requesting transport (including CAN).
+        if (len == 8 && memcmp(data, "SPEDPIN1", 8) == 0) {
+            uint8_t reply[10] = {COMM_CUSTOM_HW_DATA};
+            memcpy(reply + 1, data, 8);
+            reply[9] = speedped_pin_levels();
+            reply_func(reply, sizeof(reply));
+            break;
+        }
+#endif
 		if (hwdata_func) {
 			hwdata_func(data, len);
 		}
@@ -2124,6 +2134,12 @@ static THD_FUNCTION(blocking_thread, arg) {
 		} break;
 
 		case COMM_DETECT_MOTOR_R_L: {
+#ifdef HW_SPEEDPED75100
+            const bool output_was_disabled=app_is_output_disabled();
+            if (!output_was_disabled) app_disable_output(-1);
+            // Let an in-flight ADC iteration finish before measurement starts.
+            chThdSleepMilliseconds(10);
+#endif
 			mc_configuration *mcconf = mempools_alloc_mcconf();
 			*mcconf = *mc_interface_get_configuration();
 			mc_configuration *mcconf_old = mempools_alloc_mcconf();
@@ -2143,6 +2159,10 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			int fault = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
 			mc_interface_set_configuration(mcconf_old);
+#ifdef HW_SPEEDPED75100
+            speedped_pedal_configure();
+            if (!output_was_disabled) app_disable_output(0);
+#endif
 
 			if (fault != FAULT_CODE_NONE) {
 				r = 0.0;

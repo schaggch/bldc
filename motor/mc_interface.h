@@ -35,6 +35,7 @@ unsigned mc_interface_calc_crc(mc_configuration* conf, bool is_motor_2);
 bool mc_interface_dccal_done(void);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);
+bool mc_interface_is_locked(void);
 void mc_interface_unlock(void);
 void mc_interface_lock_override_once(void);
 mc_fault_code mc_interface_get_fault(void);

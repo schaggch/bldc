@@ -462,6 +462,13 @@ void mc_interface_set_pwm_callback(void (*p_func)(void)) {
  */
 void mc_interface_lock(void) {
 	motor_now()->m_lock_enabled = true;
+#ifdef HW_SPEEDPED75100
+    speedped_sound_stop();
+#endif
+}
+
+bool mc_interface_is_locked(void) {
+    return motor_now()->m_lock_enabled;
 }
 
 /**
@@ -1616,6 +1623,10 @@ float mc_interface_get_battery_level(float *wh_left) {
  * Speed, in m/s
  */
 float mc_interface_get_speed(void) {
+#ifdef HW_SPEEDPED75100
+    // Use the same Hall-C measurement as the SPEEDPED drive limits.
+    return speedped_get_speed();
+#else
 	if (m_wheel_speed_override) {
 		return m_wheel_speed_override_value;
 	} else {
@@ -1627,6 +1638,7 @@ float mc_interface_get_speed(void) {
 		return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
 #endif
 	}
+#endif
 }
 
 /**

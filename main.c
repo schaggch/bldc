@@ -366,6 +366,16 @@ int main(void) {
 	ledpwm_init();
 	mc_interface_init(cfg_reset);
 
+#ifdef HW_SPEEDPED75100
+    // Import this board's stock preset once, before any app/communication can
+    // request torque. A failed/partial flash write must not start an old app.
+    while (!speedped_install_stock_once()) {
+        LED_RED_ON();
+        chThdSleepMilliseconds(1000);
+    }
+    LED_RED_OFF();
+#endif
+
 	commands_init();
 
 #if COMM_USE_USB

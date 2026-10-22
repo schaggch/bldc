@@ -4732,6 +4732,9 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	state_m->vq = c * motor->m_motor_state.v_beta  - s * motor->m_motor_state.v_alpha;
 
 	mc_audio_state *audio = &motor->m_audio;
+#ifdef HW_SPEEDPED75100
+    if (!speedped_sound_watchdog_ok()) audio->mode = MC_AUDIO_OFF;
+#endif
 	switch (audio->mode) {
 	case MC_AUDIO_TABLE: {
 		float output = 0.0;

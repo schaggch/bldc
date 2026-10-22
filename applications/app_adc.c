@@ -75,7 +75,9 @@ void app_adc_configure(adc_config *conf) {
 			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
 			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
 		} else {
+#ifndef HW_SPEEDPED75100
 			palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+#endif
 		}
 	}
 
@@ -162,6 +164,7 @@ bool app_adc_range_ok(void) {
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
+	static bool was_pid = false;
 
 	chRegSetThreadName("APP_ADC");
 	is_running = true;
@@ -298,6 +301,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 		} else {
 			// When only one button input is available, use it differently depending on the control mode
+#ifndef HW_SPEEDPED75100
 			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
                     config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
 					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
@@ -313,6 +317,7 @@ static THD_FUNCTION(adc_thread, arg) {
 					cc_button = !cc_button;
 				}
 			}
+#endif
 		}
 
 		// Override button values, when used from LISP
@@ -336,6 +341,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		if (app_is_output_disabled()) {
 			continue;
 		}
+#ifdef HW_SPEEDPED75100
+        // NONE must remain silent, including the hardware-specific drive gate.
+        if (config.ctrl_type == ADC_CTRL_TYPE_NONE) continue;
+#endif
 
 		if (adc_detached && timeout_has_timeout()) {
 			continue;
@@ -403,6 +412,10 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		was_coast_brake = coast_brake;
 
+#ifdef HW_SPEEDPED75100
+		const float pedal_request_before_ramp = pwr;
+#endif
+
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float pwr_ramp = 0.0;
@@ -420,6 +433,59 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		pwr_last = pwr;
+
+#ifdef HW_SPEEDPED75100
+		// Classify negative requests by control mode: reverse current is drive,
+		// while explicit brake-current modes must remain available without PAS.
+        const bool speedped_duty_mode = config.ctrl_type == ADC_CTRL_TYPE_DUTY ||
+            config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_CENTER || config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON;
+        float speedped_duty_cap=-1.0f;
+        float speedped_speed_scale=1.0f;
+        const bool pedal_allowed = speedped_bike_allowed(fabsf(pedal_request_before_ramp)>0.001f,
+            speedped_duty_mode ? &speedped_duty_cap : NULL,
+            speedped_duty_mode ? &speedped_speed_scale : NULL);
+        static float speedped_duty_previous=0.0f;
+        static systime_t speedped_duty_time=0;
+        const systime_t speedped_duty_now=chVTGetSystemTimeX();
+        const float speedped_duty_dt=(float)(speedped_duty_now-speedped_duty_time)/CH_CFG_ST_FREQUENCY;
+        speedped_duty_time=speedped_duty_now;
+        if (!pedal_allowed || !speedped_duty_mode || speedped_duty_dt>0.02f)
+            speedped_duty_previous=0.0f;
+        // Bike assistance always follows the throttle, including AH and SH.
+        cc_button = false;
+        was_pid = false;
+		const bool pedal_braking = pwr < 0.0f &&
+			(config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
+			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER ||
+			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
+			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC ||
+			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC);
+		if (!pedal_allowed) {
+			was_pid = false;
+			cc_button = false;
+			if (!pedal_braking) {
+				// Actively release an existing command; merely skipping an output
+				// would leave the previous motor/CAN request latched.
+				mc_interface_set_current_rel(0.0f);
+				if (config.multi_esc) {
+					for (int i = 0; i < CAN_STATUS_MSGS_TO_STORE; i++) {
+						can_status_msg *msg = comm_can_get_status_msg_index(i);
+						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+							comm_can_set_current_rel(msg->id, 0.0f);
+						}
+					}
+				}
+				if (fabsf(pedal_request_before_ramp) < 0.001f && range_ok) {
+					ms_without_power += 1000.0f * sleep_time / CH_CFG_ST_FREQUENCY;
+				}
+				if (!adc_detached && range_ok) timeout_reset();
+				pwr_ramp = 0.0f;
+				pwr_last = 0.0f;
+				last_time = chVTGetSystemTimeX();
+				continue;
+			}
+		}
+#endif
 
 		float current_rel = 0.0;
 		bool current_mode = false;
@@ -475,8 +541,27 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 
-			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
+			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) && range_ok) {
+                float duty_request=utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty);
+#ifdef HW_SPEEDPED75100
+                if (speedped_duty_cap>=0.0f)
+                    duty_request=copysignf(fminf(fabsf(duty_request),speedped_duty_cap),duty_request);
+                duty_request*=speedped_speed_scale;
+                if (speedped_duty_cap>=0.0f) {
+                    duty_request=speedped_sh_duty_step(speedped_duty_previous,duty_request,
+                        fminf(speedped_duty_cap,mcconf->l_max_duty),speedped_duty_dt);
+                }
+                duty_request=speedped_duty_rise(speedped_duty_previous,duty_request,
+                    mcconf->l_max_duty,config.ramp_time_pos,speedped_duty_dt);
+                speedped_duty_previous=duty_request;
+                if (speedped_speed_scale<=0.0f) {
+                    // Release torque at the speed limit, rather than braking to
+                    // zero duty. Retain permission and ramp state for recovery.
+                    current_mode=true; current_rel=0.0f;
+                    break;
+                }
+#endif
+				mc_interface_set_duty(duty_request);
 				send_duty = true;
 			}
 			break;
@@ -513,6 +598,9 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// If safe start is enabled and the output has not been zero for long enough
 		if ((ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) || !range_ok) {
+#ifdef HW_SPEEDPED75100
+            speedped_duty_previous=0.0f;
+#endif
 			static int pulses_without_power_before = 0;
 			if (ms_without_power == pulses_without_power_before) {
 				ms_without_power = 0;
@@ -539,7 +627,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
-		static bool was_pid = false;
 
 		// Filter RPM to avoid glitches
 		static float rpm_filtered = 0.0;

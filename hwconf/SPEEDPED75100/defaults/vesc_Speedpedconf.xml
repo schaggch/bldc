@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomConfiguration>
+    <ConfigVersion>4</ConfigVersion>
+    <config_name>speedped_bike_v1</config_name>
+    <wheel_mm>2250</wheel_mm>
+    <wheel_pulses>1</wheel_pulses>
+    <pedal_kmh>0</pedal_kmh>
+    <ah_kmh>0</ah_kmh>
+    <sh_erpm>0</sh_erpm>
+    <pas_timeout>500</pas_timeout>
+    <pas_magnets>5</pas_magnets>
+    <pas_start>2</pas_start>
+    <pas_duty>1</pas_duty>
+    <no_wheel_seconds>100</no_wheel_seconds>
+    <no_wheel_watts>500</no_wheel_watts>
+    <no_wheel_erpm>10000</no_wheel_erpm>
+    <sh_duty>15</sh_duty>
+    <sound_start>0</sound_start>
+    <sound_ride>0</sound_ride>
+    <sound_volume>100</sound_volume>
+    <sound_tempo>100</sound_tempo>
+</CustomConfiguration>
