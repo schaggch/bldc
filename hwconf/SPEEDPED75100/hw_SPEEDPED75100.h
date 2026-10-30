@@ -4,17 +4,25 @@
 
 #include <stdbool.h>
 #include "stock_defaults.h"
+
+// Modified controller: one original R0005 per phase, not three in parallel.
+#undef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES 0.0005
 #include "../flipsky/hw_75_100_V2.h"
 
 #undef HW_NAME
 #define HW_NAME "SPEEDPED75100"
 #define HW_SPEEDPED75100
+#define HW_SPEEDPED_KEYDISPLAY
+void speedped_keydisplay_init(void);
+void speedped_keydisplay_byte(unsigned char byte);
 bool speedped_install_stock_once(void);
 
 // PPM/PB6 is reserved for the single-wire, active-low pedal sensor.
 void speedped_pedal_configure(void);
 bool speedped_pedal_allowed(void);
 bool speedped_bike_allowed(bool throttle_requested, float *sh_duty_cap, float *speed_scale);
+float speedped_adc_limit(float request, float cap, bool braking);
 float speedped_sh_duty_step(float previous, float request, float cap, float dt);
 float speedped_duty_rise(float previous, float request, float max_duty, float ramp, float dt);
 bool speedped_sound_watchdog_ok(void);

@@ -121,7 +121,7 @@
       <type>2</type>
       <vTx>6</vTx>
       <longName>Timeout ohne Radimpulse</longName>
-      <description>Zeit seit letzter Radflanke bzw. Start. 0 s deaktiviert die Ersatzbegrenzung ohne Radsignal, auch wenn eine eRPM-Grenze eingestellt ist.</description>
+      <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
       <valInt>100</valInt>
       <minInt>0</minInt>
@@ -134,7 +134,7 @@
       <type>2</type>
       <vTx>6</vTx>
       <longName>Leistungsschwelle ohne Radsignal</longName>
-      <description>Positive elektrische Batterie-Eingangsleistung. Oberhalb dieser Schwelle wird nach dem Timeout die Ersatzgrenze aktiviert.</description>
+      <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
       <valInt>500</valInt>
       <minInt>0</minInt>
@@ -147,7 +147,7 @@
       <type>2</type>
       <vTx>6</vTx>
       <longName>eRPM-Grenze ohne Radsignal</longName>
-      <description>0 deaktiviert die Ersatzbegrenzung. Nach Ausloesen bleibt sie bis zu einer gueltigen Radperiode aktiv, auch wenn die Leistung sinkt. Keine automatische Bremsung.</description>
+      <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
       <valInt>10000</valInt>
       <minInt>0</minInt>
@@ -159,8 +159,8 @@
     <sh_duty>
       <type>2</type>
       <vTx>6</vTx>
-      <longName>maxDuty SH</longName>
-      <description>Duty-Modus: maximaler Tastgrad bei gehaltener SH. Gasgriff bestimmt die Anforderung. Ab 80% dieser Grenze steigt Duty langsamer; die Grenze wird nie ueberschritten. 0 sperrt SH im Duty-Modus. Keine feste Fahrgeschwindigkeit.</description>
+      <longName>maxADC SH</longName>
+      <description>Maximaler normierter Gasgriffwert bei SH in allen ADC-Betriebsmodi. Begrenzt auf X Prozent, skaliert den Gasgriff nicht. 0 sperrt SH. Bremsanforderungen bleiben erhalten.</description>
       <transmittable>1</transmittable>
       <valInt>15</valInt>
       <minInt>0</minInt>
@@ -250,9 +250,6 @@
           <param>wheel_pulses</param>
           <param>pedal_kmh</param>
           <param>ah_kmh</param>
-          <param>no_wheel_seconds</param>
-          <param>no_wheel_watts</param>
-          <param>no_wheel_erpm</param>
           <param>sh_duty</param>
         </subgroupParams>
       </subgroup>

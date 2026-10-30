@@ -20,9 +20,15 @@ static bool drive(bool pedal,bool throttle,float rpm) {
 static void init(void) {
     t=0; watts=0; bike_init(&b,t,false,false,false); c=bike_defaults();
     c.v[BIKE_PEDAL_KMH]=25; c.v[BIKE_AH_KMH]=6;
-    c.v[BIKE_MM]=2100; c.v[BIKE_SH_DUTY]=0; c.v[BIKE_NO_WHEEL_ERPM]=0; c.v[BIKE_NO_WHEEL_WATTS]=0; c.v[BIKE_NO_WHEEL_SECONDS]=5;
+    c.v[BIKE_MM]=2100; c.v[BIKE_SH_DUTY]=15; c.v[BIKE_NO_WHEEL_ERPM]=0; c.v[BIKE_NO_WHEEL_WATTS]=0; c.v[BIKE_NO_WHEEL_SECONDS]=5;
 }
 int main(void) {
+    assert(bike_adc_limit(0.9f,0.15f,false)==0.15f);
+    assert(bike_adc_limit(0.1f,0.15f,false)==0.1f);
+    assert(bike_adc_limit(-0.9f,0.15f,false)==-0.15f);
+    assert(bike_adc_limit(-0.9f,0.15f,true)==-0.9f);
+    assert(bike_adc_limit(0.9f,-1.0f,false)==0.9f);
+    assert(bike_adc_limit(0.9f,0.0f,false)==0.0f);
     c=bike_defaults(); assert(bike_valid(&c));
     c.v[BIKE_START]=0; assert(!bike_valid(&c));
     c=bike_defaults(); c.v[BIKE_DUTY]=2; assert(!bike_valid(&c));
@@ -32,7 +38,8 @@ int main(void) {
     sample(true,false,false,3); assert(bike_mode(&b)==1); assert(drive(false,true,1000));
     assert(drive(false,true,1500)); assert(drive(false,true,-1500));
     assert(drive(false,true,1450)); assert(drive(false,true,1400));
-    // SH release with AH inactive inhibits PAS for exactly one second.
+    // SH release after AH has been absent for 500 ms inhibits PAS.
+    sample(true,false,false,500);
     sample(false,false,false,3); assert(b.inhibit); uint32_t released=t;
     assert(!drive(true,true,0)); sample(false,false,false,999); assert(b.inhibit);
     sample(false,false,false,1); assert(!b.inhibit && t-released==1000);
@@ -41,6 +48,20 @@ int main(void) {
     init(); sample(true,true,false,3); assert(bike_mode(&b)==2);
     sample(false,true,false,3); assert(!b.inhibit && bike_mode(&b)==0);
     assert(!drive(false,true,0)); assert(drive(true,true,0));
+    // AH released first: SH release within 500 ms must not inhibit PAS.
+    init(); sample(true,true,false,3); sample(true,false,false,3);
+    sample(true,false,false,490); sample(false,false,false,3);
+    assert(!b.inhibit && drive(true,true,0));
+    init(); sample(true,true,false,3); sample(true,false,false,3);
+    sample(true,false,false,500); sample(false,false,false,3);
+    assert(b.inhibit && !drive(true,true,0));
+    // Same AH grace across unsigned clock wrap.
+    init(); t=UINT32_MAX-100; bike_init(&b,t,false,false,false);
+    sample(true,true,false,3); sample(true,false,false,3);
+    sample(true,false,false,200); sample(false,false,false,3); assert(!b.inhibit);
+    // Zero SH cap blocks every control mode, including callers without a cap output.
+    init(); sample(true,false,false,3); c.v[BIKE_SH_DUTY]=0;
+    assert(!drive(false,true,0));
     // A held SH at startup must be released before assistance becomes available.
     init(); bike_init(&b,0,true,false,false); assert(bike_mode(&b)==0);
     sample(false,false,false,3); sample(true,false,false,3); assert(bike_mode(&b)==1);
@@ -69,42 +90,22 @@ int main(void) {
     sample(false,false,true,3); assert(bike_kmh(&b,&c,1000,t)==0.0f);
     sample(false,false,false,997); sample(false,false,true,3);
     assert(fabsf(bike_kmh(&b,&c,1000,t)-7.56f)<0.001f);
-    // Configurable missing-wheel timeout and strict positive power threshold.
-    init(); c.v[BIKE_NO_WHEEL_SECONDS]=5; c.v[BIKE_NO_WHEEL_WATTS]=200;
-    c.v[BIKE_NO_WHEEL_ERPM]=1000; watts=201;
-    t=4999; assert(drive(true,true,1200)); assert(!b.fallback_active);
-    t=5000; watts=200; assert(drive(true,true,1200));
-    watts=-500; assert(drive(true,true,1200)); assert(!b.fallback_active);
-    watts=201; drive(true,false,1200); assert(!b.fallback_active);
-    assert(!drive(true,true,1200)); assert(b.fallback_active);
-    watts=0; assert(!drive(true,true,1000)); // Dropped power must not release latch.
-    assert(!drive(true,true,950)); assert(drive(true,true,949));
-    assert(drive(true,true,970)); assert(!drive(true,true,-1000));
-    sample(false,false,true,3); assert(!drive(true,true,1200)); // One edge insufficient.
-    sample(false,false,false,997); sample(false,false,true,3);
-    assert(drive(true,true,1200)); assert(!b.fallback_active);
-    // Configured timeout also works below the two-second display freshness.
-    c.v[BIKE_NO_WHEEL_SECONDS]=1; t+=1000; watts=201;
-    assert(bike_wheel_fresh(&b,t,1000)); assert(!drive(true,true,1200));
-    t+=5000; watts=201; assert(!drive(true,true,1200));
-    c.v[BIKE_NO_WHEEL_ERPM]=0; assert(drive(true,true,1200)); assert(!b.fallback_active);
-    // Timeout zero disables fallback, including an already latched limit.
-    init(); c.v[BIKE_NO_WHEEL_ERPM]=1000; c.v[BIKE_NO_WHEEL_SECONDS]=0;
-    watts=1; t=100000; assert(drive(true,true,1000));
-    assert(!b.fallback_active && !b.fallback_limited);
+    // Legacy missing-wheel settings cannot activate a replacement limiter.
+    init(); c.v[BIKE_NO_WHEEL_SECONDS]=1; c.v[BIKE_NO_WHEEL_WATTS]=0;
+    c.v[BIKE_NO_WHEEL_ERPM]=1000; watts=10000; t=100000;
     b.fallback_active=true; b.fallback_limited=true;
-    assert(drive(true,true,1000));
+    assert(drive(true,true,50000));
     assert(!b.fallback_active && !b.fallback_limited);
-    // Unsigned tick wrap preserves an enabled timeout.
-    c.v[BIKE_NO_WHEEL_SECONDS]=2; t=UINT32_MAX-500; bike_init(&b,t,false,false,false);
-    t+=1999; assert(drive(true,true,1000)); t++; assert(!drive(true,true,1000));
+    float no_wheel_cap=-1, no_wheel_scale=0;
+    assert(bike_drive_allowed(&b,&c,t,1000,true,true,50000,watts,&no_wheel_cap,&no_wheel_scale));
+    assert(no_wheel_scale==1.0f);
     // SH has no separate eRPM limit and remains usable without a wheel signal.
     init();
     sample(true,false,false,3); t+=5000; assert(drive(false,true,100));
     assert(drive(false,true,5000));
     // SH duty cap and progressive command ramp.
     init(); sample(true,false,false,3);
-    float duty_cap=-1;
+    float duty_cap=-1; c.v[BIKE_SH_DUTY]=0;
     assert(!bike_drive_allowed(&b,&c,t,1000,false,true,5000,0,&duty_cap,NULL));
     c.v[BIKE_SH_DUTY]=10;
     assert(bike_drive_allowed(&b,&c,t,1000,false,true,5000,0,&duty_cap,NULL));
@@ -151,11 +152,11 @@ int main(void) {
     assert(fabsf(factor-0.5f)<0.00001f);
     c.v[BIKE_NO_WHEEL_ERPM]=1000; c.v[BIKE_NO_WHEEL_SECONDS]=1; t=b.last_pulse+1000;
     assert(bike_drive_allowed(&b,&c,t,1000,false,true,950,1,&duty_cap,&factor));
-    assert(fabsf(factor-0.25f)<0.00001f); // Strictest limit wins.
-    assert(bike_drive_allowed(&b,&c,t,1000,false,true,1000,0,&duty_cap,&factor) && factor==0);
+    assert(fabsf(factor-0.5f)<0.00001f); // Wheel speed only; legacy fallback ignored.
+    assert(bike_drive_allowed(&b,&c,t,1000,false,true,1000,0,&duty_cap,&factor) && fabsf(factor-0.5f)<0.00001f);
     sample(true,false,false,3); c.v[BIKE_SH_DUTY]=10;
     assert(bike_drive_allowed(&b,&c,t,1000,false,true,900,0,&duty_cap,&factor));
-    assert(fabsf(factor-0.5f)<0.00001f && fabsf(duty_cap-0.1f)<0.00001f);
+    assert(factor==1.0f && fabsf(duty_cap-0.1f)<0.00001f);
     // SH->AH follows normal ADC positive ramp from actual SH output, not
     // the uncapped throttle ramp. Recovery from a limit is slew-limited too.
     assert(fabsf(bike_duty_rise(0.1f,0.8f,0.95f,1.0f,0.002f)-0.1019f)<0.00001f);
@@ -164,7 +165,7 @@ int main(void) {
     assert(bike_duty_rise(0.8f,0,0.95f,1,0.002f)==0);
     assert(bike_duty_rise(0.1f,0.8f,0.95f,0,0.002f)==0.8f);
     assert(bike_duty_rise(0.1f,-0.8f,0.95f,1,0.002f)>-0.002f);
-    // Zero disables speed limits, not the PAS/button interlocks or fallback.
+    // Zero disables speed limits, not the PAS/button interlocks interlocks.
     init(); c.v[BIKE_PEDAL_KMH]=0;
     b.have_period=true; b.have_pulse=true; b.period=100; b.last_pulse=t;
     b.limited=true;
@@ -174,7 +175,7 @@ int main(void) {
     sample(true,true,false,3); c.v[BIKE_AH_KMH]=0;
     assert(bike_drive_allowed(&b,&c,t,1000,false,true,5000,0,&duty_cap,&factor) && factor==1);
     c.v[BIKE_NO_WHEEL_ERPM]=1000; c.v[BIKE_NO_WHEEL_SECONDS]=1; t=b.last_pulse+1000;
-    assert(bike_drive_allowed(&b,&c,t,1000,false,true,1000,1,&duty_cap,&factor) && factor==0);
+    assert(bike_drive_allowed(&b,&c,t,1000,false,true,1000,1,&duty_cap,&factor) && factor==1);
     c.v[BIKE_NO_WHEEL_SECONDS]=0;
     assert(bike_drive_allowed(&b,&c,t,1000,false,true,1000,1,&duty_cap,&factor) && factor==1);
     assert(!b.fallback_active && !b.fallback_limited);

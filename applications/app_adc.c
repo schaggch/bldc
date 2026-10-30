@@ -442,7 +442,7 @@ static THD_FUNCTION(adc_thread, arg) {
         float speedped_duty_cap=-1.0f;
         float speedped_speed_scale=1.0f;
         const bool pedal_allowed = speedped_bike_allowed(fabsf(pedal_request_before_ramp)>0.001f,
-            speedped_duty_mode ? &speedped_duty_cap : NULL,
+            &speedped_duty_cap,
             speedped_duty_mode ? &speedped_speed_scale : NULL);
         static float speedped_duty_previous=0.0f;
         static systime_t speedped_duty_time=0;
@@ -460,6 +460,13 @@ static THD_FUNCTION(adc_thread, arg) {
 			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
 			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC ||
 			 config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC);
+        // Clamp the normalized throttle before conversion to current, duty or PID speed.
+        // Explicit braking is independent of assistance limits.
+        if (speedped_duty_cap>=0.0f && !pedal_braking) {
+            pwr=speedped_adc_limit(pwr,speedped_duty_cap,pedal_braking);
+            pwr_ramp=pwr;
+            pwr_last=pwr;
+        }
 		if (!pedal_allowed) {
 			was_pid = false;
 			cc_button = false;
@@ -544,13 +551,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) && range_ok) {
                 float duty_request=utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty);
 #ifdef HW_SPEEDPED75100
-                if (speedped_duty_cap>=0.0f)
-                    duty_request=copysignf(fminf(fabsf(duty_request),speedped_duty_cap),duty_request);
                 duty_request*=speedped_speed_scale;
-                if (speedped_duty_cap>=0.0f) {
-                    duty_request=speedped_sh_duty_step(speedped_duty_previous,duty_request,
-                        fminf(speedped_duty_cap,mcconf->l_max_duty),speedped_duty_dt);
-                }
                 duty_request=speedped_duty_rise(speedped_duty_previous,duty_request,
                     mcconf->l_max_duty,config.ramp_time_pos,speedped_duty_dt);
                 speedped_duty_previous=duty_request;

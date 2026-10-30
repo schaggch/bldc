@@ -1,8 +1,26 @@
 # SPEEDPED75100
 
 Hardwareprofil auf Basis von `flipsky/hw_75_100_V2.h` und `.c`, fuer den
-Flipsky 75100V202 mit drei parallelen 0,5-mOhm-Shunts pro Phase.
-Leistungsstufe, Strommessung und Hardwarelimits werden unveraendert uebernommen.
+Flipsky 75100V202 mit **einem originalen R0005 (0,5 mOhm) pro Phase**.
+Der Nutzer hat je zwei der drei parallelen Shunts entfernt, sechs von neun
+insgesamt. Das Profil ueberschreibt CURRENT_SHUNT_RES auf 0.0005 Ohm;
+CURRENT_AMP_GAIN bleibt 20. HW_HAS_3_SHUNTS bezeichnet die drei Messkanaele
+und bleibt erhalten. Die Stromskalierung je ADC-Schritt ist damit ein Drittel
+der bisherigen Skalierung. Das unveraenderte Flipsky-Originalprofil gilt
+weiter fuer die serienmaessige Bestueckung mit drei parallelen Shunts.
+
+Diese Firmware ist ausschliesslich fuer die geaenderte Bestueckung bestimmt.
+Motor-/Batteriestromgrenzen und gespeicherte Motorparameter werden nicht
+pauschal hoch- oder herunterskaliert. Vorgaben bleiben 40 A Motorstrom,
+50 A Batteriestrom, -10 A Brems-/Rekuperationsstrom und 150 A Absolutgrenze.
+Diese Werte und die geerbten Hardwarelimits sind keine thermische Freigabe
+fuer den einzelnen Shunt. Bei gleichem Phasenstrom ist die Gesamtverlustleistung
+in den Shunts dreimal so hoch, die Belastung des einzelnen verbliebenen
+Widerstands neunmal so hoch wie vorher pro Widerstand. Widerstandsleistung,
+Kuehlung und Messbereich muessen vor Lastbetrieb geprueft werden.
+Stromanzeige extern gegenpruefen; Motorwerte, die mit unpassender
+Stromskalierung ermittelt wurden, neu einmessen. Terminal `speedped` zeigt
+die aktive Shuntkalibrierung.
 
 ## SPEEDPED in Jvesctool
 
@@ -13,13 +31,13 @@ Die neue Seite erfordert die passende neue SPEEDPED75100-Firmware; ohne diese
 Verbindung sind die Felder und Schreibfunktionen deaktiviert.
 
 Felder: Radumfang in mm, Signale pro Radumdrehung, maxSpeed pedaling in km/h,
-maxSpeed AH in km/h, maxDuty SH in Prozent sowie
+maxSpeed AH in km/h, maxADC SH in Prozent sowie
 PAS-Timeout in ms, Magnete pro Kurbelumdrehung, Startperioden und Low-Anteil
 <50% oder >50%. Genau 50% gilt nie als gueltige Drehrichtung.
 
 Die Geschwindigkeitsgrenzen sind ab Werk **0 = keine Begrenzung**. Dies gilt
 fuer PAS-km/h und AH-km/h. Freigaben bleiben erforderlich;
-maxDuty SH = 0 sperrt weiterhin SH im Duty-Modus. Radumfang (Vorgabe
+maxADC SH = 0 sperrt SH in allen ADC-Modi. Radumfang (Vorgabe
 2250 mm) und Radimpulse (Vorgabe 1) muessen zum Fahrrad passen. PAS startet mit
 500 ms, 5 Magneten, 2 vollstaendigen Startperioden und Low >50%.
 Mit **Write auf der SPEEDPED-Seite** speichern; Read liest gespeicherte Werte,
@@ -67,16 +85,16 @@ Ist die naechste Flanke ueberfaellig, verwendet die Berechnung das Signalalter
 statt der alten kuerzeren Periode: der Wert faellt beim Verzogern kontinuierlich.
 Nach mehr als 10 s Luecke werden zwei neue Flanken benoetigt. Ein einzelner
 Radsensor erkennt keine Fahrtrichtung; die Anzeige ist deshalb immer positiv.
-SH nutzt im Duty-Modus eine Duty-Grenze. Ein separates SH-eRPM-Limit gibt es nicht mehr. Die Kilometerzaehler sind davon nicht umgestellt.
+SH begrenzt den normierten ADC-Gasgriffwert in jedem Betriebsmodus. Ein separates SH-eRPM-Limit gibt es nicht mehr. Die Kilometerzaehler sind davon nicht umgestellt.
 
 - Kein SH: Pedalbetrieb mit PAS-Freigabe und maxSpeed pedaling. AH alleine
   erteilt keine Fahrfreigabe.
-- Nur SH gehalten: Schiebehilfe mit maxDuty SH (Duty-Modus) ohne separates eRPM-Limit, ohne PAS-Anforderung.
+- Nur SH gehalten: Schiebehilfe mit maxADC SH (alle ADC-Modi) ohne separates eRPM-Limit, ohne PAS-Anforderung.
 - SH und AH gehalten: Anfahrhilfe mit maxSpeed AH, ohne PAS-Anforderung.
 - In jedem Modus bestimmt der Gasgriff die Leistung. Kein Tempomat.
-- Wird SH ohne gehaltenen AH-Taster losgelassen, werden PAS-Signale verworfen
+- Wird SH losgelassen und lag in den letzten 500 ms kein AH-Signal an, werden PAS-Signale verworfen
   und die Erkennung fuer 1000 ms gesperrt. Anschliessend neuer PAS-Safe-Start.
-- Bleibt AH beim Loslassen von SH gehalten, entfaellt diese PAS-Sperre. Die
+- Ist AH gehalten oder war innerhalb der letzten 500 ms aktiv, entfaellt diese PAS-Sperre. Die
   Anfahrhilfe endet trotzdem; nur eine gueltige Pedalfreigabe kann weiterfahren.
 - Beim Einschalten/Neukonfigurieren gehaltene Taster erst beide loslassen.
 
@@ -90,34 +108,19 @@ Explizite Bremsanforderungen bleiben
 moeglich. Die Radgeschwindigkeit benoetigt zwei fallende Flanken; die Reaktion
 auf Beschleunigung haengt deshalb von der Radimpulszahl ab.
 
-Ausnahme SH im ADC-Duty-Modus: maxDuty SH begrenzt den Sollwert auf X Prozent.
-Ab 80% dieser Grenze wird der weitere Anstieg zunehmend langsamer, bis X
-erreicht ist. Der Sollwert wird dabei nicht auf 10% reduziert. Gas wegnehmen
-reduziert den Sollwert ohne weitere Verzoegerung durch diese SH-Rampe.
-Eine separat aktivierte eRPM-Ersatzgrenze bei
-fehlendem Radsignal bleibt wirksam. Vorgabe maxDuty SH = 15%. Ein Wert von 0 sperrt SH im
-Duty-Modus. Alte Einstellungen bleiben bei
-der Migration erhalten. Strom-Skalierung und zusaetzliche PID-Regler sind
-nicht enthalten. Duty ist keine garantierte Drehzahl- oder Geschwindigkeitsgrenze.
+SH begrenzt den normierten Gasgriffwert in allen ADC-Betriebsmodi auf
+maxADC SH (bisher maxDuty SH). Bei X=15 bleibt die Anforderung bis 15%
+unveraendert und wird darueber auf 15% begrenzt. Die Umsetzung in Strom,
+Duty oder PID-Drehzahl erfolgt erst danach. Explizite Bremsanforderungen
+bleiben erhalten. 0 sperrt SH in allen Modi. Gespeicherte Werte bleiben erhalten.
 
-Im Reiter **Speed** sind drei Werte fuer fehlende Radimpulse einstellbar:
-Timeout in Sekunden (Vorgabe 100, Bereich 0..120), Leistungsschwelle in Watt
-(elektrische Batterie-Eingangsleistung, Vorgabe 500) und Ersatzgrenze in eRPM
-(Vorgabe 10000; 0 = Ersatzbegrenzung aus). Auch Timeout 0 s deaktiviert die
-Ersatzbegrenzung vollstaendig und loescht eine bereits aktive Ersatzbegrenzung.
-Die Zeit zaehlt seit der letzten entprellten Radflanke, anfangs seit Initialisierung.
-Nach Ablauf des Timeouts ohne neue Radflanke und bei Gasanforderung mit
-Leistung strikt oberhalb der Schwelle wird die Ersatzgrenze aktiviert.
-Sie gilt in allen Fahrmodi zusaetzlich zu deren Grenzen: im Duty-Modus mit
-Reduktion ab 80%, sonst mit 95%-Hysterese.
-Sie bleibt bei sinkender Leistung aktiv, bis wieder eine gueltige Radperiode
-vorliegt oder die Ersatzgrenze auf 0 gesetzt wird. Rekuperation loest sie nicht aus.
-Die bisherige feste Zwei-Sekunden-Antriebssperre entfaellt; die Anzeige wird
-erst nach zehn Sekunden ohne Radimpuls null und sinkt vorher bei ueberfaelliger
-Flanke. Die Ersatzbegrenzung hat davon unabhaengig ihren eigenen Timeout.
-Ein einzelner Sensor kann
-Stillstand nicht von einem Kabelbruch unterscheiden. Alte SPEEDPED-Einstellungen
-werden uebernommen; die drei neuen Werte beginnen mit 5 s, 0 W und 0 eRPM.
+Die Speed-Funktion (Hall C/PC8, Radumfang und Radimpulszahl) bleibt erhalten,
+einschliesslich Anzeige und PAS-/AH-Geschwindigkeitsgrenzen. Ohne Radimpulse
+gibt es in diesem Branch keine zusaetzliche Begrenzung oder eRPM-Ersatzgrenze.
+Nach zehn Sekunden ohne Radimpuls zeigt Speed null; vorher sinkt der Schaetzwert
+bei ueberfaelligen Flanken. Die drei alten Ersatzbegrenzungsfelder sind aus
+der Speed-Seite entfernt und werden nur fuer die Speicher-/Protokollkompatibilitaet
+mitgefuehrt. Auch vorhandene gespeicherte Werte koennen keine Ersatzbegrenzung ausloesen.
 
 ## Sound
 
@@ -224,3 +227,34 @@ Bei Abbruch erfolgt ein erneuter Versuch vor App-/Kommunikationsstart.
 Spaetere Starts (auch erneutes Flashen desselben Presets) erhalten Benutzeraenderungen.
 Bei einem kuenftigen neuen Preset muss die Revision bewusst erhoeht werden.
 Read Default liefert jederzeit die importierten Vorgaben.
+
+## Keydisplay KM5S: echte Fahrdaten, Einstellungen nur lesen
+
+Im Target `SPEEDPED75100` ist der Haupt-UART (Stecker UART1, TX PB10,
+RX PB11 / USART3) fuer das Display reserviert: 9600 Baud, 8N1.
+App **ADC + UART** verwenden. Bluetooth bleibt am separaten UART2
+(TX PC10, RX PC11 / UART4) mit 115200 Baud und VESC-Protokoll.
+USB bleibt fuer VESC Tool verfuegbar.
+
+S7/S10 und R2 werden geprueft, beantwortet und fuer das Terminalkommando
+`keydisplay` gespeichert. Die Antworten liefern gemessene Radgeschwindigkeit,
+Batteriestrom und Controller-/Motortemperatur. S5-Handshake und R7 mit separaten
+Temperaturbytes entsprechen dem getesteten Display. Stillstand wird als FFFF
+codiert. Unterspannung sowie ADC-Bereichsfehler/Absolut-Ueberstrom werden im
+begrenzten KM5S-Fehlerformat gemeldet; weitere VESC-Fehler stehen im Terminal.
+
+Keine Display-Einstellung schreibt Motor-, App- oder SPEEDPED-Konfiguration.
+PWM-Anforderung, Walk, Licht und Geschwindigkeitswunsch wirken nicht auf den
+Antrieb. PAS-Stufen werden nicht eingefuehrt. Verbindungsabbruch veraendert die
+bestehende PAS-/SH-/AH-Steuerung nicht. Bluetooth bleibt unabhaengig.
+
+Die Speed-Codierung verwendet den aus den Anzeigetests abgeleiteten Display-
+Umfang 2277 mm fuer Radcode 6. Der reale Radumfang und die reale Magnetzahl
+bleiben ausschliesslich in SPEEDPED eingestellt; daraus wird die gemessene
+Geschwindigkeit berechnet. Eine andere Display-Radgroesse ist noch nicht
+kalibriert und kann die angezeigte Geschwindigkeit veraendern.
+Ist-Strom wird vorlaeufig mit Code = Batterieampere * 3 uebertragen (0..85 A);
+Rekuperation wird als 0 dargestellt. Die genaue Ampereanzeige ist noch numerisch
+am Display zu pruefen. Negative/ungueltige Temperaturen werden als 0 codiert.
+Perioden ueber 3500 ms werden nicht mehr kuenstlich begrenzt; die Anzeige sehr
+langsamer Fahrt und der gesamte Betrieb am Controller sind noch zu testen.

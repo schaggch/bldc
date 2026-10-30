@@ -36,7 +36,8 @@ static inline bool bike_input_sample(bike_input *s, bool active, uint32_t now, u
 }
 typedef struct {
     bike_input sh, ah, wheel;
-    uint32_t last_pulse, period, inhibit_since;
+    uint32_t last_pulse, period, inhibit_since, last_ah;
+    bool have_ah;
     bool have_pulse, have_period, inhibit, fallback_active, fallback_limited;
     bool buttons_armed, limited;
 } bike_state;
@@ -51,9 +52,11 @@ static inline void bike_init(bike_state *s, uint32_t now, bool sh, bool ah, bool
 static inline bool bike_sample(bike_state *s, uint32_t now, bool sh, bool ah, bool wheel,
         uint32_t debounce, uint32_t second) {
     bike_input_sample(&s->ah, ah, now, debounce);
+    if (s->ah.stable || ah) { s->last_ah=now; s->have_ah=true; }
     bool sh_changed = bike_input_sample(&s->sh, sh, now, debounce);
     if (!s->sh.stable && !s->ah.stable) s->buttons_armed=true;
-    if (sh_changed && !s->sh.stable && !s->ah.stable) {
+    if (sh_changed && !s->sh.stable && !s->ah.stable &&
+            (!s->have_ah || (uint32_t)(now-s->last_ah)>=second/2U)) {
         s->inhibit=true; s->inhibit_since=now;
     }
     if (s->inhibit && (uint32_t)(now-s->inhibit_since)>=second) s->inhibit=false;
@@ -95,33 +98,18 @@ static inline bool bike_drive_allowed(bike_state *s, const bike_config *c, uint3
         uint32_t hz, bool pedal, bool request, float erpm, float watts, float *sh_duty_cap,
         float *speed_scale) {
     if(speed_scale) *speed_scale=0;
-    if (sh_duty_cap) *sh_duty_cap=-1.0f; // Negative: not in SH duty mode.
+    if (sh_duty_cap) *sh_duty_cap=-1.0f; // Negative: not in SH mode; normalized throttle cap otherwise.
     unsigned mode=bike_mode(s);
-    // Wheel acquisition must not depend on throttle or limiter state.
-    // Positive battery-input power only; regeneration cannot trigger this.
-    if (c->v[BIKE_NO_WHEEL_ERPM]==0 || c->v[BIKE_NO_WHEEL_SECONDS]==0) {
-        s->fallback_active=false; s->fallback_limited=false;
-    } else if (request && (uint32_t)(now-s->last_pulse)>=c->v[BIKE_NO_WHEEL_SECONDS]*hz &&
-            watts>(float)c->v[BIKE_NO_WHEEL_WATTS]) {
-        s->fallback_active=true;
-    }
+    // Missing wheel pulses never impose a substitute motor-RPM limit.
+    // Retain legacy config slots and state fields for storage compatibility.
+    (void)request; (void)erpm; (void)watts;
+    s->fallback_active=false; s->fallback_limited=false;
     if (mode==0 && (!pedal || s->inhibit)) return false;
-    if (mode==1 && sh_duty_cap) {
-        *sh_duty_cap=(float)c->v[BIKE_SH_DUTY]/100.0f;
-        if (*sh_duty_cap<=0.0f) return false;
-        // Duty SH replaces its eRPM mode limit. The independent missing-wheel
-        // fallback remains in effect if the user explicitly enabled it.
-        if(speed_scale) {
-            *speed_scale=s->fallback_active ? bike_limit_scale(erpm,c->v[BIKE_NO_WHEEL_ERPM]) : 1.0f;
-            s->limited=false; s->fallback_limited=false;
-            return true;
-        }
-        if (s->fallback_active) {
-            float rpm=fabsf(erpm), cap=(float)c->v[BIKE_NO_WHEEL_ERPM];
-            if (rpm>=cap) s->fallback_limited=true;
-            if (rpm<cap*0.95f) s->fallback_limited=false;
-            if (s->fallback_limited) return false;
-        }
+    if (mode==1) {
+        float sh_cap=(float)c->v[BIKE_SH_DUTY]/100.0f;
+        if (sh_duty_cap) *sh_duty_cap=sh_cap;
+        if (sh_cap<=0.0f) return false;
+        if (speed_scale) *speed_scale=1.0f;
         s->limited=false;
         return true;
     }
@@ -129,15 +117,8 @@ static inline bool bike_drive_allowed(bike_state *s, const bike_config *c, uint3
     float speed=mode==1 ? fabsf(erpm) : bike_kmh(s,c,hz,now);
     if(speed_scale) {
         *speed_scale=bike_limit_scale(speed,limit);
-        if(s->fallback_active) *speed_scale=fminf(*speed_scale,bike_limit_scale(erpm,c->v[BIKE_NO_WHEEL_ERPM]));
         s->limited=false; s->fallback_limited=false;
         return true; // Limit tapering must not reset the permission/ADC ramp.
-    }
-    if (s->fallback_active) {
-        float rpm=fabsf(erpm), cap=(float)c->v[BIKE_NO_WHEEL_ERPM];
-        if (rpm>=cap) s->fallback_limited=true;
-        if (rpm<cap*0.95f) s->fallback_limited=false;
-        if (s->fallback_limited) return false;
     }
     if (limit==0.0f) s->limited=false;
     else {
@@ -147,6 +128,10 @@ static inline bool bike_drive_allowed(bike_state *s, const bike_config *c, uint3
     return !s->limited;
 }
 
+// Cap the normalized ADC demand before the selected mode converts it to output.
+static inline float bike_adc_limit(float request, float cap, bool braking) {
+    return cap<0.0f || braking ? request : copysignf(fminf(fabsf(request),cap),request);
+}
 // SH duty command ramp: nominal 0..cap in 0.5 s; above 80% progressively
 // reduce the rise rate to 10% at the cap. Decreases are never delayed here.
 static inline float bike_sh_duty_step(float previous,float request,float cap,float dt) {

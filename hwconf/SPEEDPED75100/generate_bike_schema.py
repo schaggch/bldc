@@ -12,10 +12,10 @@ fields=[
  ('pas_magnets','Magnets per Round',5,1,64,'','Magnete pro Kurbelumdrehung, fuer die Trittfrequenz.'),
  ('pas_start','Min signals for start',2,1,32,'','Anzahl vollstaendiger gueltiger Perioden nach der Synchronisationsflanke.'),
  ('pas_duty','PAS Low-Anteil',1,0,1,'','Zeitanteil auf GND. Genau 50% wird nie als vorwaerts gewertet.'),
- ('no_wheel_seconds','Timeout ohne Radimpulse',5,0,120,' s','Zeit seit letzter Radflanke bzw. Start. 0 s deaktiviert die Ersatzbegrenzung ohne Radsignal, auch wenn eine eRPM-Grenze eingestellt ist.'),
- ('no_wheel_watts','Leistungsschwelle ohne Radsignal',0,0,100000,' W','Positive elektrische Batterie-Eingangsleistung. Oberhalb dieser Schwelle wird nach dem Timeout die Ersatzgrenze aktiviert.'),
- ('no_wheel_erpm','eRPM-Grenze ohne Radsignal',0,0,100000,' eRPM','0 deaktiviert die Ersatzbegrenzung. Nach Ausloesen bleibt sie bis zu einer gueltigen Radperiode aktiv, auch wenn die Leistung sinkt. Keine automatische Bremsung.'),
- ('sh_duty','maxDuty SH',0,0,95,' %','Duty-Modus: maximaler Tastgrad bei gehaltener SH. Gasgriff bestimmt die Anforderung. Ab 80% dieser Grenze steigt Duty langsamer; die Grenze wird nie ueberschritten. 0 sperrt SH im Duty-Modus. Keine feste Fahrgeschwindigkeit.')]
+ ('no_wheel_seconds','Timeout ohne Radimpulse',5,0,120,' s','Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.'),
+ ('no_wheel_watts','Leistungsschwelle ohne Radsignal',0,0,100000,' W','Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.'),
+ ('no_wheel_erpm','eRPM-Grenze ohne Radsignal',0,0,100000,' eRPM','Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.'),
+ ('sh_duty','maxADC SH',0,0,95,' %','Maximaler normierter Gasgriffwert bei SH in allen ADC-Betriebsmodi. Begrenzt auf X Prozent, skaliert den Gasgriff nicht. 0 sperrt SH. Bremsanforderungen bleiben erhalten.')]
 fields += [
  ('sound_start','Startton',0,0,1,'','0 = aus, 1 = kurzer Retro-Startton im Stillstand.'),
  ('sound_ride','Fahrmelodie',0,0,1,'','0 = aus, 1 = Retro-Melodie bei Fahrt und gueltigem PAS.'),
@@ -38,7 +38,7 @@ for name,label,default,lo,hi,suffix,desc in fields:
 order=E.SubElement(xml,'SerOrder')
 for f in fields: item(order,'ser',f[0])
 g=E.SubElement(E.SubElement(xml,'Grouping'),'group'); item(g,'groupName','General')
-for title,groupfields in [('Speed',fields[:4]+fields[8:12]),('PAS',fields[4:8]),('Sound',fields[12:])]:
+for title,groupfields in [('Speed',fields[:4]+fields[11:12]),('PAS',fields[4:8]),('Sound',fields[12:])]:
     sub=E.SubElement(g,'subgroup'); item(sub,'subgroupName',title); ps=E.SubElement(sub,'subgroupParams')
     for f in groupfields: item(ps,'param',f[0])
 E.indent(xml); data=E.tostring(xml,encoding='utf-8',xml_declaration=True)

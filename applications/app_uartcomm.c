@@ -111,6 +111,11 @@ void app_uartcomm_initialize(void) {
 	serialPortDriverTx[0] = &HW_UART_DEV;
 	serialPortDriverRx[0] = &HW_UART_DEV;
 	uart_cfg[0].speed =  BAUDRATE;
+#ifdef HW_SPEEDPED_KEYDISPLAY
+	uart_cfg[0].speed = 9600;
+	uart_cfg[0].cr2 = 0; // 8N1; no LIN framing.
+	speedped_keydisplay_init();
+#endif
 	RxGpioPort[0] = HW_UART_RX_PORT; RxGpioPin[0] = HW_UART_RX_PIN;
 	TxGpioPort[0] = HW_UART_TX_PORT; TxGpioPin[0] = HW_UART_TX_PIN;
 	gpioAF[0] = HW_UART_GPIO_AF;
@@ -178,6 +183,10 @@ void app_uartcomm_stop(UART_PORT port_number) {
 }
 
 void app_uartcomm_send_packet(unsigned char *data, unsigned int len, UART_PORT port_number) {
+#ifdef HW_SPEEDPED_KEYDISPLAY
+	// The display port has its own frames. VESC traffic stays on USB/UART2.
+	if(port_number==UART_PORT_COMM_HEADER) return;
+#endif
 	if (port_number >= UART_NUMBER) {
 		return;
 	}
@@ -200,6 +209,9 @@ void app_uartcomm_configure(uint32_t baudrate, bool enabled, UART_PORT port_numb
 	if (baudrate > 0) {
 		uart_cfg[port_number].speed = baudrate;
 	}
+#ifdef HW_SPEEDPED_KEYDISPLAY
+	if(port_number==UART_PORT_COMM_HEADER) uart_cfg[port_number].speed=9600;
+#endif
 
 	if (thread_is_running && uart_is_running[port_number]) {
 		sdStart(serialPortDriverRx[port_number], &uart_cfg[port_number]);
@@ -240,6 +252,10 @@ static THD_FUNCTION(packet_process_thread, arg) {
 				if (uart_is_running[port_number]) {
 					msg_t res = sdGetTimeout(serialPortDriverRx[port_number], TIME_IMMEDIATE);
 					if (res != MSG_TIMEOUT) {
+#ifdef HW_SPEEDPED_KEYDISPLAY
+						if(port_number==UART_PORT_COMM_HEADER) speedped_keydisplay_byte((unsigned char)res);
+						else
+#endif
 						packet_process_byte(res, &packet_state[port_number]);
 						rx = true;
 					}

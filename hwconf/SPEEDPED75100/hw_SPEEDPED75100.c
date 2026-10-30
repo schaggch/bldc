@@ -194,6 +194,8 @@ bool speedped_pedal_allowed(void) {
 static void pedal_status(int argc, const char **argv) {
     (void)argc;
     (void)argv;
+    commands_printf("Current sensing: one R0005 per phase, shunt=%.3f mOhm, gain=%.1f",
+        (double)(CURRENT_SHUNT_RES*1000.0),(double)CURRENT_AMP_GAIN);
     const bool allowed = speedped_pedal_allowed();
     chSysLock();
     speedped_gate snapshot = pedal;
@@ -238,3 +240,9 @@ void speedped_pedal_configure(void) {
         chThdCreateStatic(pedal_wa, sizeof(pedal_wa), NORMALPRIO + 1, pedal_thread, 0);
     }
 }
+
+float speedped_adc_limit(float request,float cap,bool braking) {
+    return bike_adc_limit(request,cap,braking);
+}
+
+#include "keydisplay_adapter.h"
