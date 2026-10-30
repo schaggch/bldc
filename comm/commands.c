@@ -478,6 +478,15 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = status;
 		}
 
+
+#ifdef HW_SPEEDPED75100
+        // SPEEDPED extension: preserve all standard telemetry fields, including
+        // real motor eRPM. Bit 22 appends Hall-C wheel speed in m/s * 1000.
+        if (mask & ((uint32_t)1 << 22)) {
+            buffer_append_float32(send_buffer, mc_interface_get_speed(), 1e3, &ind);
+        }
+#endif
+
 		reply_func(send_buffer, ind);
 		mempools_free_packet_buffer(send_buffer);
 	} break;

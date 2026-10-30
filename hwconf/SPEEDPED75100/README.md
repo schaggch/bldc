@@ -258,3 +258,26 @@ Rekuperation wird als 0 dargestellt. Die genaue Ampereanzeige ist noch numerisch
 am Display zu pruefen. Negative/ungueltige Temperaturen werden als 0 codiert.
 Perioden ueber 3500 ms werden nicht mehr kuenstlich begrenzt; die Anzeige sehr
 langsamer Fahrt und der gesamte Betrieb am Controller sind noch zu testen.
+
+## Bluetooth: Radsensor-Speed auch in der normalen Werteabfrage
+
+Die Serienfelder von COMM_GET_VALUES (4) und COMM_GET_VALUES_SELECTIVE (50)
+bleiben unveraendert. Insbesondere bleibt rpm die echte Motor-eRPM.
+Nur fuer dieses SPEEDPED-Profil wird Bit 22 als Erweiterung verwendet:
+Radgeschwindigkeit aus Hall C und SPEEDPED-Radumfang/-Impulszahl, identisch
+zu COMM_GET_VALUES_SETUP (47), Setup-Selective (51) und dem Keydisplay-Grundwert.
+
+- Kommando 4: Die Antwort hat inklusive Kommando-ID 78 Payloadbytes statt 74.
+  Speed liegt bei nullbasiertem Payload-Offset 74..77 (ohne VESC-Rahmen/CRC).
+- Kommando 50: Nur Speed anfordern mit Payload `32 00 40 00 00`.
+  Antwort `32 00 40 00 00 SS SS SS SS` (Maske 0x00400000 = Bit 22).
+- Kommando 51 bleibt unveraendert: `33 00 00 00 40` (Bit 6).
+- Speed ist immer signed int32, Big Endian, m/s * 1000, kein IEEE-Float.
+  km/h = Rohwert * 3.6 / 1000. Beispiel 36 km/h: Rohwert 10000, `00 00 27 10`.
+- Bei fehlendem/abgelaufenem Radsignal ist Speed 0; Motor-eRPM ersetzt ihn nie.
+
+Die Handy-App muss dieses Feld explizit dekodieren oder weiterhin Kommando
+47/51 verwenden. Eine vorhandene Berechnung aus rpm liefert keine
+Radsensorgeschwindigkeit. Alte Clients, die nur die Standardfelder lesen,
+koennen die vier angehaengten Bytes ignorieren. Fuer andere Hardwareprofile
+wird das Protokoll nicht erweitert.
