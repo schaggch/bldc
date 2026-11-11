@@ -821,7 +821,11 @@ float mcpwm_get_tot_current_directional_filtered(void) {
  * The input current.
  */
 float mcpwm_get_tot_current_in(void) {
+#ifdef HW_SPEEDPED75100
+    return GET_INPUT_CURRENT();
+#else
 	return mcpwm_get_tot_current() * fabsf(dutycycle_now);
+#endif
 }
 
 /**
@@ -831,7 +835,11 @@ float mcpwm_get_tot_current_in(void) {
  * The filtered input current.
  */
 float mcpwm_get_tot_current_in_filtered(void) {
+#ifdef HW_SPEEDPED75100
+    return GET_INPUT_CURRENT();
+#else
 	return mcpwm_get_tot_current_filtered() * fabsf(dutycycle_now);
+#endif
 }
 
 /**
@@ -1971,7 +1979,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	const float current_nofilter = mcpwm_get_tot_current();
-	const float current_in_nofilter = current_nofilter * fabsf(dutycycle_now);
+#ifdef HW_SPEEDPED75100
+    const float current_in_nofilter = GET_INPUT_CURRENT();
+#else
+    const float current_in_nofilter = current_nofilter * fabsf(dutycycle_now);
+#endif
 
 	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations

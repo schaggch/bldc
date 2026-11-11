@@ -9,6 +9,12 @@
 #undef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES 0.0005
 #include "../flipsky/hw_75_100_V2.h"
+#include "battery_current.h"
+
+#define HW_HAS_INPUT_CURRENT_SENSOR
+#define GET_INPUT_CURRENT() speedped_battery_current_from_voltage(ADC_VOLTS(ADC_IND_EXT2))
+// A running peripheral load must not be learned as the zero-current offset.
+#define GET_INPUT_CURRENT_OFFSET() do { } while (0)
 
 #undef HW_NAME
 #define HW_NAME "SPEEDPED75100"

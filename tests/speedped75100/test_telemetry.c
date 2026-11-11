@@ -7,6 +7,8 @@
 #include <math.h>
 #include "buffer.h"
 #include "bike_logic.h"
+#include "battery_current.h"
+static float battery_adc_voltage=1.55f;
 #define CHECK(x) do { if(!(x)) { fprintf(stderr,"telemetry check failed line %d: %s\n",__LINE__,#x); exit(1); } } while(0)
 enum { COMM_GET_VALUES=4, COMM_GET_VALUES_SELECTIVE=50, COMM_GET_VALUES_SETUP=47, COMM_GET_VALUES_SETUP_SELECTIVE=51 };
 static uint8_t packet[256], response[256];
@@ -22,7 +24,7 @@ static typeof(appconf) *app_get_configuration(void) { return &appconf; }
 FLOAT_GETTER(mc_interface_temp_fet_filtered)
 FLOAT_GETTER(mc_interface_temp_motor_filtered)
 FLOAT_GETTER(mc_interface_read_reset_avg_motor_current)
-FLOAT_GETTER(mc_interface_read_reset_avg_input_current)
+static float mc_interface_read_reset_avg_input_current(void) { return speedped_battery_current_from_voltage(battery_adc_voltage); }
 FLOAT_GETTER(mc_interface_read_reset_avg_id)
 FLOAT_GETTER(mc_interface_read_reset_avg_iq)
 FLOAT_GETTER(mc_interface_get_duty_cycle_now)
@@ -50,7 +52,7 @@ static int mc_interface_get_motor_thread(void) { return 1; }
 static float mc_interface_get_battery_level(float *wh) { *wh=42; return 0.75f; }
 static uint32_t mc_interface_get_odometer(void) { return 987; }
 typedef struct { float current_tot,current_in_tot,ah_tot,ah_charge_tot,wh_tot,wh_charge_tot; uint8_t num_vescs; } setup_values;
-static setup_values mc_interface_get_setup_values(void) { return (setup_values){1,2,3,4,5,6,1}; }
+static setup_values mc_interface_get_setup_values(void) { return (setup_values){1,speedped_battery_current_from_voltage(battery_adc_voltage),3,4,5,6,1}; }
 typedef unsigned syssts_t;
 static uint32_t now=1000;
 #define CH_CFG_ST_FREQUENCY 1000U
@@ -74,6 +76,13 @@ int main(void) {
     bike_conf=bike_defaults(); bike_conf.v[BIKE_MM]=2250; bike_conf.v[BIKE_PULSES]=1;
     bike_init(&bike,now,false,false,false);
     bike.have_period=true; bike.have_pulse=true; bike.last_pulse=now; bike.period=225;
+    request_mask(COMM_GET_VALUES_SELECTIVE,1U<<3);
+    CHECK(response_size==9 && abs(read_int(5)-1000)<=1);
+    request_mask(COMM_GET_VALUES_SETUP_SELECTIVE,1U<<3);
+    CHECK(response_size==9 && abs(read_int(5)-1000)<=1);
+    battery_adc_voltage=1.34f;
+    request_mask(COMM_GET_VALUES_SELECTIVE,1U<<3); CHECK(abs(read_int(5)-120)<=1);
+    battery_adc_voltage=1.55f;
     // Exact production speed getter and command serializers, with motor RPM unrelated to speed.
     request_mask(COMM_GET_VALUES_SETUP_SELECTIVE,1U<<6);
     CHECK(response_size==9 && response[0]==51 && read_int(5)==10000);

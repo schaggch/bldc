@@ -285,7 +285,12 @@ static THD_FUNCTION(adc_thread, arg) {
 			brake = 1.0 - brake;
 		}
 
-		decoded_level2 = brake;
+#ifdef HW_SPEEDPED75100
+        // ADC2 is the ACS758 battery-current input, never an analog brake.
+        // Keep read_voltage2 available for calibration and diagnostics.
+        brake = 0.0f;
+#endif
+        decoded_level2 = brake;
 
 		// Read the button pins
 		bool cc_button = false;

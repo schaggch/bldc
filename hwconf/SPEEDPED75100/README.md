@@ -281,3 +281,38 @@ Die Handy-App muss dieses Feld explizit dekodieren oder weiterhin Kommando
 Radsensorgeschwindigkeit. Alte Clients, die nur die Standardfelder lesen,
 koennen die vier angehaengten Bytes ignorieren. Fuer andere Hardwareprofile
 wird das Protokoll nicht erweitert.
+
+## Batteriestrom aus ACS758 auf ADC2 (R3)
+
+ACS758LCB-050B-PFF-T, 5 V, Spannungsteiler 3 kOhm + 3 kOhm auf ADC2/PA6.
+Kalibrierung aus den Nutzermessungen direkt am ADC2-Pin:
+1.34 V = 1.2 A, 1.55 V = 10 A.
+I[A] = 1.2 + (U_ADC2[V] - 1.34) * (8.8 / 0.21).
+Nullpunkt damit etwa 1.31136 V; negative Werte bleiben als Ladestrom erhalten.
+Keine automatische Nullung beim Start oder im Stillstand, keine Begrenzung
+auf 0..50 A. Gemessene Nebenverbraucher bleiben auch bei stehendem Motor sichtbar.
+Die Messung verwendet die bestehende ADC_VOLTS-Skalierung des Hardwareprofils.
+Bei systematischen Abweichungen gegen Multimeter muessen die Punkte in dieser
+Spannungsskalierung neu abgeglichen werden.
+
+Die Eingangsstrom-Getter fuer FOC und BLDC/DC verwenden jetzt den Sensor.
+Der vorhandene FOC-Eingangssensorpfad ersetzt i_bus im Regelzyklus; dessen
+Modellrechnung des Batteriestroms wird fuer dieses Profil nicht mehr verwendet.
+Auch der BLDC-Eingangsstrombegrenzer und die gemessene Eingangsstromrueckfuehrung
+in mc_interface nutzen den Sensor. Die normalen Stromfelder in BT/USB/CAN,
+Leistung, Keydisplay und die Eingangsstrom-Mapping-Begrenzung erhalten damit
+den externen Wert. Die uebrigen Regelalgorithmen und Stromgrenzen bleiben erhalten;
+insbesondere die modellbasierte Umrechnung von Batterie- in q-Stromgrenzen in
+FOC bleibt als Bestandteil der bestehenden Regelung erhalten. Die bisherigen
+Bedingungen der Ah-/Wh-Zaehler bleiben ebenfalls erhalten (keine vollstaendige
+Batteriebilanzierung aller Nebenverbraucher im Stillstand).
+
+ADC2 ist fuer den Stromsensor reserviert: Rohspannung bleibt diagnostizierbar,
+aber der Wert erzeugt in keinem ADC-Steuertyp eine analoge Bremsanforderung.
+Die PAS-/SH-/AH-Freigabe sperrt ADC-Antrieb bei ADC2 unter 0.1 oder ueber 3.2 V.
+Das ist nur eine Plausibilitaetspruefung, keine sichere Leitungsbrucherkennung;
+direkte USB/CAN/Lisp-Motorbefehle bleiben wie bisher von der App-Freigabe unabhaengig.
+Kein zusaetzlicher Hardwarefilter und kein neuer Software-Tiefpass. Bestehende
+Filter der Strombegrenzung/Telemetrie bleiben aktiv. Kein Rueckfall auf den
+berechneten Batteriestrom. Terminal `speedped` zeigt ADC2, Ampere und Plausibilitaet.
+Hardware-Abgleich der Kalibrierung und Funktion unter Last sind noch erforderlich.

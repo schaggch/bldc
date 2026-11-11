@@ -1128,12 +1128,22 @@ float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 }
 
 float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor) {
+#ifdef HW_SPEEDPED75100
+    (void)is_second_motor;
+    return GET_INPUT_CURRENT();
+#else
 	return M_MOTOR(is_second_motor)->m_motor_state.i_bus;
+#endif
 }
 
 float mcpwm_foc_get_tot_current_in_filtered_motor(bool is_second_motor) {
+#ifdef HW_SPEEDPED75100
+    (void)is_second_motor;
+    return GET_INPUT_CURRENT();
+#else
 	// TODO: Filter current?
 	return M_MOTOR(is_second_motor)->m_motor_state.i_bus;
+#endif
 }
 
 float mcpwm_foc_get_abs_motor_current_motor(bool is_second_motor) {
@@ -1330,7 +1340,11 @@ float mcpwm_foc_get_iq_filter(void) {
  * The input current.
  */
 float mcpwm_foc_get_tot_current_in(void) {
+#ifdef HW_SPEEDPED75100
+    return GET_INPUT_CURRENT();
+#else
 	return get_motor_now()->m_motor_state.i_bus;
+#endif
 }
 
 /**
@@ -1340,7 +1354,11 @@ float mcpwm_foc_get_tot_current_in(void) {
  * The filtered input current.
  */
 float mcpwm_foc_get_tot_current_in_filtered(void) {
+#ifdef HW_SPEEDPED75100
+    return GET_INPUT_CURRENT();
+#else
 	return get_motor_now()->m_motor_state.i_bus; // TODO: Calculate filtered current?
+#endif
 }
 
 /**
@@ -3695,7 +3713,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
 #endif
-		state_now->i_bus = 0.0;
+#ifdef HW_SPEEDPED75100
+        state_now->i_bus = GET_INPUT_CURRENT();
+#else
+        state_now->i_bus = 0.0;
+#endif
 		state_now->i_abs = 0.0;
 		state_now->i_abs_filter = 0.0;
 

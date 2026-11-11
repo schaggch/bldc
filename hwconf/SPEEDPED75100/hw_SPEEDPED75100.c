@@ -172,6 +172,7 @@ bool speedped_bike_allowed(bool throttle_requested, float *sh_duty_cap, float *s
     chSysLock();
     uint32_t now=chVTGetSystemTimeX();
     bool allowed=pedal_started && sensorless && !bike_saving &&
+        speedped_battery_voltage_valid(ADC_VOLTS(ADC_IND_EXT2)) &&
         (uint32_t)(now-pedal.last_sample)<=MS2ST(20) &&
         bike_drive_allowed(&bike,&bike_conf,now,CH_CFG_ST_FREQUENCY,
             speedped_gate_allowed(&pedal,now),throttle_requested,rpm,watts,sh_duty_cap,speed_scale);
@@ -196,6 +197,9 @@ static void pedal_status(int argc, const char **argv) {
     (void)argv;
     commands_printf("Current sensing: one R0005 per phase, shunt=%.3f mOhm, gain=%.1f",
         (double)(CURRENT_SHUNT_RES*1000.0),(double)CURRENT_AMP_GAIN);
+    commands_printf("Battery sensor: ADC2=%.4f V current=%.3f A valid=%d (ACS758 3k/3k)",
+        (double)ADC_VOLTS(ADC_IND_EXT2),(double)GET_INPUT_CURRENT(),
+        speedped_battery_voltage_valid(ADC_VOLTS(ADC_IND_EXT2)));
     const bool allowed = speedped_pedal_allowed();
     chSysLock();
     speedped_gate snapshot = pedal;
