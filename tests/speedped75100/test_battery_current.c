@@ -34,7 +34,7 @@ int main(void) {
     }
     // Repeated idle offset calls may not erase a real peripheral load.
     set_voltage(1.34f); float before=GET_INPUT_CURRENT();
-    for(int i=0;i<100;i++) { GET_INPUT_CURRENT_OFFSET(); }
+    for(int i=0;i<100;i++) { GET_INPUT_CURRENT_OFFSET(); MEASURE_INPUT_CURRENT_OFFSET(); }
     CHECK(GET_INPUT_CURRENT()==before && fabsf(before-1.2f)<0.025f);
     float brake=0.8f,decoded_level2=-1,read_voltage2=1.55f;
 #include "battery_adc2.inc"
