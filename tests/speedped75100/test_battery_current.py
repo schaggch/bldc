@@ -11,7 +11,7 @@ def function(source,name):
 compiler=os.environ.get('CC') or shutil.which('gcc')
 if not compiler: raise SystemExit('Set CC to a host GCC compiler')
 with tempfile.TemporaryDirectory(prefix='speedped-battery-') as tmp:
-    tmp=Path(tmp);fragments=''
+    tmp=Path(tmp);fragments=function((repo/'hwconf/SPEEDPED75100/hw_SPEEDPED75100.c').read_text(),'speedped_battery_current_read')
     names={
       'motor/mcpwm.c':['mcpwm_get_tot_current_in','mcpwm_get_tot_current_in_filtered'],
       'motor/mcpwm_foc.c':['mcpwm_foc_get_tot_current_in','mcpwm_foc_get_tot_current_in_filtered','mcpwm_foc_get_tot_current_in_motor','mcpwm_foc_get_tot_current_in_filtered_motor'],

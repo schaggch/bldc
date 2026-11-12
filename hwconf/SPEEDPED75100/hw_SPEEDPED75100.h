@@ -12,7 +12,8 @@
 #include "battery_current.h"
 
 #define HW_HAS_INPUT_CURRENT_SENSOR
-#define GET_INPUT_CURRENT() speedped_battery_current_from_voltage(ADC_VOLTS(ADC_IND_EXT2))
+float speedped_battery_current_read(void);
+#define GET_INPUT_CURRENT() speedped_battery_current_read()
 // A running peripheral load must not be learned as the zero-current offset.
 #define GET_INPUT_CURRENT_OFFSET() do { } while (0)
 #define MEASURE_INPUT_CURRENT_OFFSET() do { } while (0)

@@ -32,7 +32,7 @@ int main(void) {
     bool present[32]; memcpy(present,exists,sizeof(exists));
     bike_conf.v[BIKE_PEDAL_KMH]=30; bike_get_cfg(wire,false);
     // Interrupt each individual write of the alternate slot. Previous slot survives.
-    for (int i=0;i<12;i++) {
+    for (int i=0;i<14;i++) {
         memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
         fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
         assert(bike_conf.v[BIKE_PEDAL_KMH]==25);
@@ -56,7 +56,7 @@ int main(void) {
         memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
         bike_conf.v[BIKE_NO_WHEEL_SECONDS]=7; bike_conf.v[BIKE_NO_WHEEL_WATTS]=250;
         bike_conf.v[BIKE_NO_WHEEL_ERPM]=1200; bike_get_cfg(wire,false);
-        for(int i=0;i<(legacy_slot==1?25:12);i++) {
+        for(int i=0;i<(legacy_slot==1?27:14);i++) {
             memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
             fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
             assert(bike_conf.v[BIKE_PEDAL_KMH]==27 && bike_conf.v[BIKE_NO_WHEEL_ERPM]==10000);
@@ -76,7 +76,7 @@ int main(void) {
         assert(bike_conf.v[BIKE_SH_DUTY]==15 && bike_conf.v[BIKE_NO_WHEEL_WATTS]==250);
         memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
         bike_conf.v[BIKE_SH_DUTY]=10; bike_get_cfg(wire,false);
-        for(int i=0;i<12;i++) {
+        for(int i=0;i<14;i++) {
             memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
             fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
             assert(bike_conf.v[BIKE_SH_DUTY]==15 && bike_conf.v[BIKE_NO_WHEEL_WATTS]==250);
@@ -96,7 +96,7 @@ int main(void) {
         memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
         bike_conf.v[BIKE_SOUND_START]=1; bike_conf.v[BIKE_SOUND_RIDE]=1;
         bike_conf.v[BIKE_SOUND_TEMPO]=400; bike_get_cfg(wire,false);
-        for(int i=0;i<12;i++) {
+        for(int i=0;i<14;i++) {
             memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
             fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
             assert(bike_conf.v[BIKE_SH_DUTY]==12 && bike_conf.v[BIKE_SOUND_START]==0);
@@ -120,7 +120,7 @@ int main(void) {
         assert(bike_conf.v[BIKE_SOUND_VOLUME]==34);
         memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
         bike_conf.v[BIKE_SH_DUTY]=18; bike_get_cfg(wire,false);
-        for(int i=0;i<12;i++) {
+        for(int i=0;i<14;i++) {
             memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
             fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
             assert(bike_conf.v[BIKE_SH_DUTY]==17 && bike_conf.v[BIKE_SOUND_VOLUME]==34);
@@ -128,7 +128,30 @@ int main(void) {
         fail_after=-1; assert(bike_set_cfg(wire)); reload();
         assert(bike_conf.v[BIKE_SH_DUTY]==18 && bike_conf.v[BIKE_TIMEOUT]==1234);
     }
-    bike_config maximum={{5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400}};
+    for(unsigned slot=0;slot<2;slot++) {
+        memset(ee,0,sizeof(ee)); memset(exists,0,sizeof(exists));
+        bike_conf=bike_defaults(); bike_conf.v[BIKE_PEDAL_KMH]=29;
+        bike_slot=1-slot; fail_after=-1; assert(bike_store_config(bike_conf,false));
+        ee[slot*16]=BIKE_PRE_ADC2_SIGNATURE;
+        ee[slot*16+10]=bike_checksum(ee+slot*16,10);
+        exists[slot*16+11]=false; exists[slot*16+12]=false;
+        reload(); assert(bike_conf.v[BIKE_PEDAL_KMH]==29 && bike_conf.v[BIKE_ADC2_V1]==1340);
+        memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
+        bike_conf.v[BIKE_ADC2_V1]=1300; bike_conf.v[BIKE_ADC2_I1]=0;
+        bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=10000;
+        bike_get_cfg(wire,false);
+        for(int i=0;i<14;i++) {
+            memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
+            fail_after=i; writes=0; assert(!bike_set_cfg(wire)); reload();
+            assert(bike_conf.v[BIKE_PEDAL_KMH]==29 && bike_conf.v[BIKE_ADC2_V1]==1340);
+        }
+        fail_after=-1; assert(bike_set_cfg(wire)); reload();
+        assert(bike_conf.v[BIKE_ADC2_V1]==1300 && bike_conf.v[BIKE_ADC2_I1]==0);
+        assert(bike_conf.v[BIKE_ADC2_V2]==1500 && bike_conf.v[BIKE_ADC2_I2]==10000);
+        bike_config invalid=bike_conf; invalid.v[BIKE_ADC2_V2]=1300;
+        assert(!bike_store_config(invalid,false));
+    }
+    bike_config maximum={{5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400,100,0,3000,60000}};
     assert(bike_valid(&maximum)); bike_conf=maximum; bike_get_cfg(wire,false);
     assert(bike_set_cfg(wire)); reload(); assert(!memcmp(&bike_conf,&maximum,sizeof(maximum)));
     puts("Bike storage: wire format, validation, reload, corruption and all interrupted writes passed.");

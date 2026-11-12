@@ -9,17 +9,19 @@
 enum { BIKE_MM, BIKE_PULSES, BIKE_PEDAL_KMH, BIKE_AH_KMH,
     BIKE_TIMEOUT, BIKE_MAGNETS, BIKE_START, BIKE_DUTY,
     BIKE_NO_WHEEL_SECONDS, BIKE_NO_WHEEL_WATTS, BIKE_NO_WHEEL_ERPM, BIKE_SH_DUTY,
-    BIKE_SOUND_START, BIKE_SOUND_RIDE, BIKE_SOUND_VOLUME, BIKE_SOUND_TEMPO, BIKE_FIELDS };
+    BIKE_SOUND_START, BIKE_SOUND_RIDE, BIKE_SOUND_VOLUME, BIKE_SOUND_TEMPO, BIKE_ADC2_V1, BIKE_ADC2_I1, BIKE_ADC2_V2, BIKE_ADC2_I2, BIKE_FIELDS };
 typedef struct { uint32_t v[BIKE_FIELDS]; } bike_config;
 static inline bike_config bike_defaults(void) {
     // Zero speed limits disable that limiter; PAS/button interlocks still apply.
     return (bike_config){{SPEEDPED_BIKE_DEFAULT_VALUES}};
 }
 static inline bool bike_valid(const bike_config *c) {
-    const uint32_t lo[] = {100,1,0,0,50,1,1,0,0,0,0,0,0,0,0,25};
-    const uint32_t hi[] = {5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400};
+    const uint32_t lo[] = {100,1,0,0,50,1,1,0,0,0,0,0,0,0,0,25,100,0,100,0};
+    const uint32_t hi[] = {5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400,3000,60000,3000,60000};
     for (unsigned i=0; i<BIKE_FIELDS; i++)
         if (c->v[i]<lo[i] || c->v[i]>hi[i]) return false;
+    if (c->v[BIKE_ADC2_V2] < c->v[BIKE_ADC2_V1]+10U ||
+            c->v[BIKE_ADC2_I2] < c->v[BIKE_ADC2_I1]+100U) return false;
     return true;
 }
 typedef struct { bool stable, candidate; uint32_t since; } bike_input;

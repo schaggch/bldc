@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include <math.h>
 #include "hw_SPEEDPED75100.h"
+#include "bike_logic.h"
+static bike_config bike_conf;
+typedef unsigned syssts_t;
+static syssts_t chSysGetStatusAndLockX(void) { return 0; }
+static void chSysRestoreStatusX(syssts_t status) { (void)status; }
 #define CHECK(x) do { if(!(x)) { fprintf(stderr,"battery check failed line %d: %s\n",__LINE__,#x); exit(1); } } while(0)
 static uint16_t ADC_Value[18];
 enum { MOTOR_TYPE_BLDC, MOTOR_TYPE_DC, MOTOR_TYPE_FOC };
@@ -12,6 +17,7 @@ static struct { struct { int motor_type; } m_conf; } fixture_motor;
 #include "battery_getters.inc"
 static void set_voltage(float voltage) { ADC_Value[ADC_IND_EXT2]=(uint16_t)lroundf(voltage*4096.0f/V_REG); }
 int main(void) {
+    bike_conf=bike_defaults();
     CHECK(fabsf(speedped_battery_current_from_voltage(1.34f)-1.2f)<0.0001f);
     CHECK(fabsf(speedped_battery_current_from_voltage(1.55f)-10.0f)<0.0001f);
     const float zero=1.34f-1.2f*0.21f/8.8f;
@@ -39,6 +45,13 @@ int main(void) {
     float brake=0.8f,decoded_level2=-1,read_voltage2=1.55f;
 #include "battery_adc2.inc"
     CHECK(brake==0 && decoded_level2==0 && read_voltage2==1.55f);
+    // Saved point changes immediately affect every public getter without reboot.
+    bike_conf.v[BIKE_ADC2_V1]=1300; bike_conf.v[BIKE_ADC2_I1]=0;
+    bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=10000;
+    CHECK(bike_valid(&bike_conf)); set_voltage(1.5f);
+    CHECK(fabsf(mc_interface_get_tot_current_in()-10.0f)<0.025f);
+    bike_conf.v[BIKE_ADC2_V2]=1300; CHECK(!bike_valid(&bike_conf));
+    bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=0; CHECK(!bike_valid(&bike_conf));
     puts("ACS758: calibration, signed readings, all production current getters, idle-load preservation and ADC2 brake reservation passed.");
     return 0;
 }

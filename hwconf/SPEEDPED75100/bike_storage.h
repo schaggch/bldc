@@ -13,7 +13,8 @@ static bool bike_saving;
 static bool bike_legacy;
 static unsigned bike_legacy_slot;
 #define BIKE_SLOT_WORDS 16U
-#define BIKE_RECORD_WORDS 11U
+#define BIKE_RECORD_WORDS 13U
+#define BIKE_PRE_ADC2_SIGNATURE 0x2ea07d4cU
 #define BIKE_LEGACY_SIGNATURE 0xd31eefe0U
 #define BIKE_PRE_DUTY_SIGNATURE 0x1b98fcefU
 #define BIKE_PRE_REMOVE_SH_SIGNATURE 0x856d82beU
@@ -48,11 +49,18 @@ static bool bike_read_record(unsigned base, unsigned fields, uint32_t signature,
 }
 static bool bike_read_slot(unsigned slot,bike_config *cfg,uint32_t *sequence) {
     uint32_t w[BIKE_RECORD_WORDS];
-    for(unsigned i=0;i<BIKE_RECORD_WORDS;i++) {
+    for(unsigned i=0;i<11U;i++) {
         eeprom_var v; if(!conf_general_read_eeprom_var_hw(&v,slot*BIKE_SLOT_WORDS+i)) return false;
         w[i]=v.as_u32;
     }
-    if((w[0]!=BIKE_SIGNATURE && w[0]!=BIKE_PRE_REMOVE_SH_SIGNATURE) || w[10]!=bike_checksum(w,10)) return false;
+    if (w[0]==BIKE_SIGNATURE) {
+        for(unsigned i=11;i<BIKE_RECORD_WORDS;i++) {
+            eeprom_var v; if(!conf_general_read_eeprom_var_hw(&v,slot*BIKE_SLOT_WORDS+i)) return false;
+            w[i]=v.as_u32;
+        }
+        if(w[12]!=bike_checksum(w,12)) return false;
+    } else if ((w[0]!=BIKE_PRE_ADC2_SIGNATURE && w[0]!=BIKE_PRE_REMOVE_SH_SIGNATURE) ||
+            w[10]!=bike_checksum(w,10)) return false;
     *cfg=bike_defaults(); *sequence=w[1];
     cfg->v[BIKE_MM]=w[2]&65535; cfg->v[BIKE_PULSES]=w[2]>>16;
     cfg->v[BIKE_PEDAL_KMH]=w[3]&255; cfg->v[BIKE_AH_KMH]=(w[3]>>8)&255;
@@ -63,6 +71,10 @@ static bool bike_read_slot(unsigned slot,bike_config *cfg,uint32_t *sequence) {
     cfg->v[BIKE_SH_DUTY]=w[8]&255; cfg->v[BIKE_SOUND_START]=(w[8]>>8)&1;
     cfg->v[BIKE_SOUND_RIDE]=(w[8]>>9)&1; cfg->v[BIKE_SOUND_VOLUME]=w[8]>>16;
     cfg->v[BIKE_SOUND_TEMPO]=w[9];
+    if(w[0]==BIKE_SIGNATURE) {
+        cfg->v[BIKE_ADC2_V1]=w[10]&65535; cfg->v[BIKE_ADC2_I1]=w[10]>>16;
+        cfg->v[BIKE_ADC2_V2]=w[11]&65535; cfg->v[BIKE_ADC2_I2]=w[11]>>16;
+    }
     return bike_valid(cfg);
 }
 static bool bike_write_record(unsigned base,const uint32_t *words,unsigned count) {
@@ -129,7 +141,10 @@ static bool bike_store_config(bike_config c, bool configure) {
     words[5]=c.v[BIKE_TIMEOUT] | (c.v[BIKE_DUTY]<<16) | (c.v[BIKE_NO_WHEEL_SECONDS]<<17);
     words[6]=c.v[BIKE_NO_WHEEL_WATTS]; words[7]=c.v[BIKE_NO_WHEEL_ERPM];
     words[8]=c.v[BIKE_SH_DUTY] | (c.v[BIKE_SOUND_START]<<8) | (c.v[BIKE_SOUND_RIDE]<<9) | (c.v[BIKE_SOUND_VOLUME]<<16);
-    words[9]=c.v[BIKE_SOUND_TEMPO]; words[10]=bike_checksum(words,10);
+    words[9]=c.v[BIKE_SOUND_TEMPO];
+    words[10]=c.v[BIKE_ADC2_V1] | (c.v[BIKE_ADC2_I1]<<16);
+    words[11]=c.v[BIKE_ADC2_V2] | (c.v[BIKE_ADC2_I2]<<16);
+    words[12]=bike_checksum(words,12);
     unsigned slot=1-bike_slot;
     bool ok=true;
     // Legacy slot 1 overlaps both new slots. First retain it in legacy slot 0,

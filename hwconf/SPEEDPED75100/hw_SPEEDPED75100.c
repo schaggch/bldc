@@ -12,10 +12,21 @@
 #include "confgenerator.h"
 #include "mempools.h"
 
-// Word 31 is outside both current packed records (0..10 and 16..26).
+// Word 31 is outside both current packed records (0..12 and 16..28).
 // Old linear records are migrated before this marker is written.
 #define SPEEDPED_STOCK_MARKER_ADDRESS 31
 #define SPEEDPED_STOCK_REVISION 0x53503101U
+float speedped_battery_current_read(void) {
+    syssts_t status=chSysGetStatusAndLockX();
+    unsigned v1=bike_conf.v[BIKE_ADC2_V1], i1=bike_conf.v[BIKE_ADC2_I1];
+    unsigned v2=bike_conf.v[BIKE_ADC2_V2], i2=bike_conf.v[BIKE_ADC2_I2];
+    chSysRestoreStatusX(status);
+    float voltage=ADC_VOLTS(ADC_IND_EXT2);
+    // Before configuration loading, retain the historical calibrated defaults.
+    if(v2<=v1) return speedped_battery_current_from_voltage(voltage);
+    return speedped_battery_current_from_points(voltage,v1,i1,v2,i2);
+}
+
 static bool speedped_stock_installed(void) {
     eeprom_var v;
     return conf_general_read_eeprom_var_hw(&v,SPEEDPED_STOCK_MARKER_ADDRESS) &&
@@ -208,6 +219,9 @@ static void pedal_status(int argc, const char **argv) {
     const uint32_t now = chVTGetSystemTimeX();
     const uint32_t age = now - snapshot.last_valid;
     chSysUnlock();
+    commands_printf("ADC2 calibration: %.3f V=%.3f A, %.3f V=%.3f A",
+        (double)bc.v[BIKE_ADC2_V1]/1000.0,(double)bc.v[BIKE_ADC2_I1]/1000.0,
+        (double)bc.v[BIKE_ADC2_V2]/1000.0,(double)bc.v[BIKE_ADC2_I2]/1000.0);
     const float rpm = snapshot.period ?
         60.0f * CH_CFG_ST_FREQUENCY / (bc.v[BIKE_MAGNETS] * (float)snapshot.period) : 0.0f;
     commands_printf("SPEEDPED75100: low=%d periods=%u/%u enabled=%d age_ms=%u pedal_rpm=%.1f",

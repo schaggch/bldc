@@ -17,12 +17,12 @@
       <longName>Radumfang</longName>
       <description>Radumfang am Reifen messen.</description>
       <transmittable>1</transmittable>
+      <suffix> mm</suffix>
+      <editorScale>1</editorScale>
       <valInt>2250</valInt>
       <minInt>100</minInt>
       <maxInt>5000</maxInt>
       <stepInt>1</stepInt>
-      <suffix> mm</suffix>
-      <editorScale>1</editorScale>
     </wheel_mm>
     <wheel_pulses>
       <type>2</type>
@@ -30,12 +30,12 @@
       <longName>Signale pro Radumdrehung</longName>
       <description>Fallende Flanken am Hall-C-Eingang. Active low.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>1</valInt>
       <minInt>1</minInt>
       <maxInt>64</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
     </wheel_pulses>
     <pedal_kmh>
       <type>2</type>
@@ -43,12 +43,12 @@
       <longName>maxSpeed pedaling</longName>
       <description>0 = keine Geschwindigkeitsbegrenzung. PAS-Freigabe bleibt erforderlich. Im Duty-Modus Reduktion ab 80% bis null am Limit.</description>
       <transmittable>1</transmittable>
+      <suffix> km/h</suffix>
+      <editorScale>1</editorScale>
       <valInt>0</valInt>
       <minInt>0</minInt>
       <maxInt>150</maxInt>
       <stepInt>1</stepInt>
-      <suffix> km/h</suffix>
-      <editorScale>1</editorScale>
     </pedal_kmh>
     <ah_kmh>
       <type>2</type>
@@ -56,12 +56,12 @@
       <longName>maxSpeed AH</longName>
       <description>0 = keine Geschwindigkeitsbegrenzung. Hall A und B muessen gehalten werden; Leistung vom Gasgriff. Im Duty-Modus Reduktion ab 80%.</description>
       <transmittable>1</transmittable>
+      <suffix> km/h</suffix>
+      <editorScale>1</editorScale>
       <valInt>0</valInt>
       <minInt>0</minInt>
       <maxInt>30</maxInt>
       <stepInt>1</stepInt>
-      <suffix> km/h</suffix>
-      <editorScale>1</editorScale>
     </ah_kmh>
     <pas_timeout>
       <type>2</type>
@@ -69,12 +69,12 @@
       <longName>PAS Timeout</longName>
       <description>Maximales Alter einer gueltigen Pedalperiode.</description>
       <transmittable>1</transmittable>
+      <suffix> ms</suffix>
+      <editorScale>1</editorScale>
       <valInt>500</valInt>
       <minInt>50</minInt>
       <maxInt>5000</maxInt>
       <stepInt>1</stepInt>
-      <suffix> ms</suffix>
-      <editorScale>1</editorScale>
     </pas_timeout>
     <pas_magnets>
       <type>2</type>
@@ -82,12 +82,12 @@
       <longName>Magnets per Round</longName>
       <description>Magnete pro Kurbelumdrehung, fuer die Trittfrequenz.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>5</valInt>
       <minInt>1</minInt>
       <maxInt>64</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
     </pas_magnets>
     <pas_start>
       <type>2</type>
@@ -95,12 +95,12 @@
       <longName>Min signals for start</longName>
       <description>Anzahl vollstaendiger gueltiger Perioden nach der Synchronisationsflanke.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>2</valInt>
       <minInt>1</minInt>
       <maxInt>32</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
     </pas_start>
     <pas_duty>
       <type>4</type>
@@ -108,12 +108,12 @@
       <longName>PAS Low-Anteil</longName>
       <description>Zeitanteil auf GND. Genau 50% wird nie als vorwaerts gewertet.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>1</valInt>
       <minInt>0</minInt>
       <maxInt>1</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
       <enumNames>Low &lt; 50 %</enumNames>
       <enumNames>Low &gt; 50 %</enumNames>
     </pas_duty>
@@ -123,12 +123,12 @@
       <longName>Timeout ohne Radimpulse</longName>
       <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
+      <suffix> s</suffix>
+      <editorScale>1</editorScale>
       <valInt>100</valInt>
       <minInt>0</minInt>
       <maxInt>120</maxInt>
       <stepInt>1</stepInt>
-      <suffix> s</suffix>
-      <editorScale>1</editorScale>
     </no_wheel_seconds>
     <no_wheel_watts>
       <type>2</type>
@@ -136,12 +136,12 @@
       <longName>Leistungsschwelle ohne Radsignal</longName>
       <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
+      <suffix> W</suffix>
+      <editorScale>1</editorScale>
       <valInt>500</valInt>
       <minInt>0</minInt>
       <maxInt>100000</maxInt>
       <stepInt>1</stepInt>
-      <suffix> W</suffix>
-      <editorScale>1</editorScale>
     </no_wheel_watts>
     <no_wheel_erpm>
       <type>2</type>
@@ -149,12 +149,12 @@
       <longName>eRPM-Grenze ohne Radsignal</longName>
       <description>Reserviert fuer Kompatibilitaet. Ohne Funktion in dieser Firmware.</description>
       <transmittable>1</transmittable>
+      <suffix> eRPM</suffix>
+      <editorScale>1</editorScale>
       <valInt>10000</valInt>
       <minInt>0</minInt>
       <maxInt>100000</maxInt>
       <stepInt>1</stepInt>
-      <suffix> eRPM</suffix>
-      <editorScale>1</editorScale>
     </no_wheel_erpm>
     <sh_duty>
       <type>2</type>
@@ -162,12 +162,12 @@
       <longName>maxADC SH</longName>
       <description>Maximaler normierter Gasgriffwert bei SH in allen ADC-Betriebsmodi. Begrenzt auf X Prozent, skaliert den Gasgriff nicht. 0 sperrt SH. Bremsanforderungen bleiben erhalten.</description>
       <transmittable>1</transmittable>
+      <suffix> %</suffix>
+      <editorScale>1</editorScale>
       <valInt>15</valInt>
       <minInt>0</minInt>
       <maxInt>95</maxInt>
       <stepInt>1</stepInt>
-      <suffix> %</suffix>
-      <editorScale>1</editorScale>
     </sh_duty>
     <sound_start>
       <type>2</type>
@@ -175,12 +175,12 @@
       <longName>Startton</longName>
       <description>0 = aus, 1 = kurzer Retro-Startton im Stillstand.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>0</valInt>
       <minInt>0</minInt>
       <maxInt>1</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
     </sound_start>
     <sound_ride>
       <type>2</type>
@@ -188,12 +188,12 @@
       <longName>Fahrmelodie</longName>
       <description>0 = aus, 1 = Retro-Melodie bei Fahrt und gueltigem PAS.</description>
       <transmittable>1</transmittable>
+      <suffix />
+      <editorScale>1</editorScale>
       <valInt>0</valInt>
       <minInt>0</minInt>
       <maxInt>1</maxInt>
       <stepInt>1</stepInt>
-      <suffix />
-      <editorScale>1</editorScale>
     </sound_ride>
     <sound_volume>
       <type>2</type>
@@ -201,12 +201,12 @@
       <longName>Lautstaerke</longName>
       <description>0 = stumm. Motorspezifische Spannungsgrenze noch zu validieren.</description>
       <transmittable>1</transmittable>
+      <suffix> %</suffix>
+      <editorScale>1</editorScale>
       <valInt>100</valInt>
       <minInt>0</minInt>
       <maxInt>100</maxInt>
       <stepInt>1</stepInt>
-      <suffix> %</suffix>
-      <editorScale>1</editorScale>
     </sound_volume>
     <sound_tempo>
       <type>2</type>
@@ -214,13 +214,73 @@
       <longName>Tempo relativ zu PAS</longName>
       <description>100% = eine Note pro Magnetperiode. 200% = doppelte Notenrate.</description>
       <transmittable>1</transmittable>
+      <suffix> %</suffix>
+      <editorScale>1</editorScale>
       <valInt>100</valInt>
       <minInt>25</minInt>
       <maxInt>400</maxInt>
       <stepInt>1</stepInt>
-      <suffix> %</suffix>
-      <editorScale>1</editorScale>
     </sound_tempo>
+    <adc2_v1>
+      <type>1</type>
+      <vTx>8</vTx>
+      <longName>ADC2 Punkt 1: Spannung</longName>
+      <description>Spannung direkt am ADC2 nach dem Spannungsteiler. Punkt 2 muss mindestens 0.010 V hoeher liegen. Write speichert beide Messpunkte.</description>
+      <transmittable>1</transmittable>
+      <suffix> V</suffix>
+      <editorScale>1</editorScale>
+      <valDouble>1.34</valDouble>
+      <minDouble>0.1</minDouble>
+      <maxDouble>3.0</maxDouble>
+      <stepDouble>0.001</stepDouble>
+      <editorDecimalsDouble>3</editorDecimalsDouble>
+      <vTxDoubleScale>1000</vTxDoubleScale>
+    </adc2_v1>
+    <adc2_i1>
+      <type>1</type>
+      <vTx>8</vTx>
+      <longName>ADC2 Punkt 1: Batteriestrom</longName>
+      <description>Extern gemessener Batteriestrom zu Spannung 1. Nicht automatisch auf null setzen, wenn Nebenverbraucher Strom ziehen.</description>
+      <transmittable>1</transmittable>
+      <suffix> A</suffix>
+      <editorScale>1</editorScale>
+      <valDouble>1.2</valDouble>
+      <minDouble>0.0</minDouble>
+      <maxDouble>60.0</maxDouble>
+      <stepDouble>0.001</stepDouble>
+      <editorDecimalsDouble>3</editorDecimalsDouble>
+      <vTxDoubleScale>1000</vTxDoubleScale>
+    </adc2_i1>
+    <adc2_v2>
+      <type>1</type>
+      <vTx>8</vTx>
+      <longName>ADC2 Punkt 2: Spannung</longName>
+      <description>Spannung direkt am ADC2 nach dem Spannungsteiler. Mindestens 0.010 V Abstand zu Punkt 1.</description>
+      <transmittable>1</transmittable>
+      <suffix> V</suffix>
+      <editorScale>1</editorScale>
+      <valDouble>1.55</valDouble>
+      <minDouble>0.1</minDouble>
+      <maxDouble>3.0</maxDouble>
+      <stepDouble>0.001</stepDouble>
+      <editorDecimalsDouble>3</editorDecimalsDouble>
+      <vTxDoubleScale>1000</vTxDoubleScale>
+    </adc2_v2>
+    <adc2_i2>
+      <type>1</type>
+      <vTx>8</vTx>
+      <longName>ADC2 Punkt 2: Batteriestrom</longName>
+      <description>Extern gemessener Batteriestrom zu Spannung 2. Muss mindestens 0.100 A hoeher sein als bei Punkt 1. Kalibrierung wirkt auch auf Strombegrenzung.</description>
+      <transmittable>1</transmittable>
+      <suffix> A</suffix>
+      <editorScale>1</editorScale>
+      <valDouble>10.0</valDouble>
+      <minDouble>0.0</minDouble>
+      <maxDouble>60.0</maxDouble>
+      <stepDouble>0.001</stepDouble>
+      <editorDecimalsDouble>3</editorDecimalsDouble>
+      <vTxDoubleScale>1000</vTxDoubleScale>
+    </adc2_i2>
   </Params>
   <SerOrder>
     <ser>wheel_mm</ser>
@@ -239,6 +299,10 @@
     <ser>sound_ride</ser>
     <ser>sound_volume</ser>
     <ser>sound_tempo</ser>
+    <ser>adc2_v1</ser>
+    <ser>adc2_i1</ser>
+    <ser>adc2_v2</ser>
+    <ser>adc2_i2</ser>
   </SerOrder>
   <Grouping>
     <group>
@@ -269,6 +333,15 @@
           <param>sound_ride</param>
           <param>sound_volume</param>
           <param>sound_tempo</param>
+        </subgroupParams>
+      </subgroup>
+      <subgroup>
+        <subgroupName>ADC2 Kalibrierung</subgroupName>
+        <subgroupParams>
+          <param>adc2_v1</param>
+          <param>adc2_i1</param>
+          <param>adc2_v2</param>
+          <param>adc2_i2</param>
         </subgroupParams>
       </subgroup>
     </group>

@@ -316,3 +316,28 @@ Kein zusaetzlicher Hardwarefilter und kein neuer Software-Tiefpass. Bestehende
 Filter der Strombegrenzung/Telemetrie bleiben aktiv. Kein Rueckfall auf den
 berechneten Batteriestrom. Terminal `speedped` zeigt ADC2, Ampere und Plausibilitaet.
 Hardware-Abgleich der Kalibrierung und Funktion unter Last sind noch erforderlich.
+
+## ADC2-Kalibrierung im SPEEDPED-Tab (R4)
+
+Neuer Reiter **ADC2 Kalibrierung** in Windows und Android: zwei Messpunkte
+mit Spannung in Volt (direkt nach dem 3k/3k-Spannungsteiler an ADC2) und
+extern gemessenem Batteriestrom in Ampere. Drei Nachkommastellen.
+Vorgaben: 1.340 V / 1.200 A und 1.550 V / 10.000 A.
+Die bisher fest eingebaute Kalibrierung ist damit durch diese gespeicherten
+Messpunkte ersetzt. Read liest, Read Default laedt Vorgaben, Write speichert
+alle vier Werte gemeinsam und stoppt dabei wie bisher den ADC-Antrieb.
+Punkt 2 muss mindestens 0.010 V und 0.100 A oberhalb von Punkt 1 liegen;
+ungueltige Paare werden von der Firmware ohne Aenderung abgewiesen.
+Keine automatische Nullung und kein Stromnullsetzen beim Motorstillstand.
+Die Kennlinie gilt sofort auch fuer Telemetrie und Strombegrenzung.
+
+Custom-Konfiguration jetzt 20 Felder / 81 Byte mit neuer Signatur.
+Die vier Double-Felder werden als signed int32 mit Faktor 1000 uebertragen
+(mV bzw. mA, gespeicherter Bereich 0..60 A). Zwei abwechselnde EEPROM-Slots
+benoetigen je 13 Woerter, mit Signatur, Sequenz und Pruefsumme. Die bisherigen
+11-Wort-Datensaetze werden mit unveraenderten Fahr-/PAS-/Sound-Einstellungen
+und den bisherigen ADC2-Vorgaben gelesen; erst Write speichert das neue Format.
+Auch bei unterbrochener Migration bleibt der vorherige Datensatz erhalten.
+Der Installationsmarker an Adresse 31 bleibt unveraendert.
+Passendes neues Tool verwenden; die neue Kalibrierung verlangt keine
+Aenderung der normalen BT-Batteriestrom-Telegramme.

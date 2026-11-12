@@ -19,4 +19,8 @@
     <sound_ride>0</sound_ride>
     <sound_volume>100</sound_volume>
     <sound_tempo>100</sound_tempo>
+    <adc2_v1>1340</adc2_v1>
+    <adc2_i1>1200</adc2_i1>
+    <adc2_v2>1550</adc2_v2>
+    <adc2_i2>10000</adc2_i2>
 </CustomConfiguration>
