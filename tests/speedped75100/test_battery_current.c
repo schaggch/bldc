@@ -32,6 +32,7 @@ int main(void) {
             float volts=point==0?1.34f:point==1?1.55f:1.0f;
             float expected=speedped_battery_current_from_voltage(volts);
             set_voltage(volts);
+            CHECK(fabsf(app_adc_get_voltage2()-volts)<0.001f);
             CHECK(fabsf(mc_interface_get_tot_current_in()-expected)<0.025f);
             CHECK(fabsf(mc_interface_get_tot_current_in_filtered()-expected)<0.025f);
             CHECK(fabsf(mcpwm_foc_get_tot_current_in_motor(false)-expected)<0.025f);

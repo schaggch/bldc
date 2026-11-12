@@ -19,6 +19,7 @@ with tempfile.TemporaryDirectory(prefix='speedped-battery-') as tmp:
     for path,functions in names.items():
         source=(repo/path).read_text()
         fragments+=''.join(function(source,name) for name in functions)
+    fragments+=function((repo/'applications/app_adc.c').read_text(),'app_adc_get_voltage2')
     (tmp/'battery_getters.inc').write_text(fragments)
     adc=(repo/'applications/app_adc.c').read_text()
     end=adc.index('        decoded_level2 = brake;')+len('        decoded_level2 = brake;')

@@ -123,7 +123,12 @@ float app_adc_get_decoded_level2(void) {
 }
 
 float app_adc_get_voltage2(void) {
-	return read_voltage2;
+#ifdef HW_SPEEDPED75100
+    // Manual sensor zeroing must use real ADC2, even when the ADC app is stopped.
+    return ADC_VOLTS(ADC_IND_EXT2);
+#else
+    return read_voltage2;
+#endif
 }
 
 void app_adc_detach_adc(int detach) {

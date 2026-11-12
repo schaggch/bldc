@@ -321,7 +321,8 @@ Hardware-Abgleich der Kalibrierung und Funktion unter Last sind noch erforderlic
 
 Neuer Reiter **ADC2 Kalibrierung** in Windows und Android:
 - **ADC2 nullen (nur bei 0 A)** fragt eine aktuelle ADC2-Spannung ab und
-  uebernimmt sie als Nullpunkt in den Editor. Nur bei wirklich 0 A durch
+  uebernimmt sie als Nullpunkt in den Editor. Die Spannungsabfrage liest ADC2
+  auch bei gestoppter ADC-App direkt aus dem Hardware-ADC. Nur bei wirklich 0 A durch
   den Sensor verwenden: vorhandene Nebenverbraucher werden sonst weggenullt.
 - Zwei Messpunkte mit Spannung in Volt direkt nach dem 3k/3k-Teiler an ADC2
   und extern gemessenem Batteriestrom in Ampere. Sie bestimmen ausschliesslich
