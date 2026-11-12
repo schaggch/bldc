@@ -28,7 +28,7 @@ fields += [
  ('adc2_i2','ADC2 Punkt 2: Batteriestrom',10000,0,60000,' A','Extern gemessener Batteriestrom zu Spannung 2. Muss mindestens 0.100 A hoeher sein als bei Punkt 1. Kalibrierung wirkt auch auf Strombegrenzung.')]
 stock=E.parse(root/'defaults/vesc_Speedpedconf.xml').getroot()
 fields=[(n,l,int(stock.findtext(n)),lo,hi,s,d) for n,l,default,lo,hi,s,d in fields]
-(root/'bike_defaults.h').write_text('/* Generated stock SPEEDPED values. */\n#define SPEEDPED_BIKE_DEFAULT_VALUES '+','.join(str(f[2]) for f in fields)+'\n')
+(root/'bike_defaults.h').write_text('/* Generated stock SPEEDPED values. */\n#define SPEEDPED_BIKE_DEFAULT_VALUES '+','.join(str(f[2]) for f in fields)+'\n#define SPEEDPED_BIKE_WIRE_SIZE 81U\n')
 xml=E.Element('ConfigParams'); params=E.SubElement(xml,'Params')
 def item(parent,name,value): E.SubElement(parent,name).text=str(value)
 meta=E.SubElement(params,'hw_name'); item(meta,'type',0); item(meta,'longName','SPEEDPED'); item(meta,'transmittable',0)

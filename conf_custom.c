@@ -29,6 +29,9 @@
 
 // Function pointers
 static int (*m_get_cfg)(uint8_t *data, bool is_default) = 0;
+#ifdef HW_SPEEDPED75100
+#include "hwconf/SPEEDPED75100/bike_defaults.h"
+#endif
 static bool (*m_set_cfg)(uint8_t *data) = 0;
 static int (*m_get_cfg_xml)(uint8_t **data) = 0;
 
@@ -102,8 +105,8 @@ void conf_custom_process_cmd(unsigned char *data, unsigned int len,
 
 	case COMM_SET_CUSTOM_CONFIG: {
 #ifdef HW_SPEEDPED75100
-        // Signature + fifteen int32 fields + one enum byte + config index.
-        if (len != 66) break;
+        // Generated wire size plus the custom-configuration index byte.
+        if (len != SPEEDPED_BIKE_WIRE_SIZE + 1U) break;
 #endif
 		int conf_ind = data[0];
 		if (m_set_cfg && conf_ind == 0) {
