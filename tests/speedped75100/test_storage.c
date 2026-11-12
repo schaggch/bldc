@@ -138,7 +138,7 @@ int main(void) {
         reload(); assert(bike_conf.v[BIKE_PEDAL_KMH]==29 && bike_conf.v[BIKE_ADC2_V1]==1340);
         memcpy(backup,ee,sizeof(ee)); memcpy(present,exists,sizeof(exists));
         bike_conf.v[BIKE_ADC2_V1]=1300; bike_conf.v[BIKE_ADC2_I1]=0;
-        bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=10000;
+        bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=10000; bike_conf.v[BIKE_ADC2_ZERO]=1280123;
         bike_get_cfg(wire,false);
         for(int i=0;i<14;i++) {
             memcpy(ee,backup,sizeof(ee)); memcpy(exists,present,sizeof(exists)); reload();
@@ -148,10 +148,11 @@ int main(void) {
         fail_after=-1; assert(bike_set_cfg(wire)); reload();
         assert(bike_conf.v[BIKE_ADC2_V1]==1300 && bike_conf.v[BIKE_ADC2_I1]==0);
         assert(bike_conf.v[BIKE_ADC2_V2]==1500 && bike_conf.v[BIKE_ADC2_I2]==10000);
+        assert(bike_conf.v[BIKE_ADC2_ZERO]==1280123);
         bike_config invalid=bike_conf; invalid.v[BIKE_ADC2_V2]=1300;
         assert(!bike_store_config(invalid,false));
     }
-    bike_config maximum={{5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400,100,0,3000,60000}};
+    bike_config maximum={{5000,64,150,30,5000,64,32,1,120,100000,100000,95,1,1,100,400,100,0,3000,60000,1311364}};
     assert(bike_valid(&maximum)); bike_conf=maximum; bike_get_cfg(wire,false);
     assert(bike_set_cfg(wire)); reload(); assert(!memcmp(&bike_conf,&maximum,sizeof(maximum)));
     puts("Bike storage: wire format, validation, reload, corruption and all interrupted writes passed.");

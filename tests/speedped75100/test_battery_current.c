@@ -48,10 +48,14 @@ int main(void) {
     // Saved point changes immediately affect every public getter without reboot.
     bike_conf.v[BIKE_ADC2_V1]=1300; bike_conf.v[BIKE_ADC2_I1]=0;
     bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=10000;
+    bike_conf.v[BIKE_ADC2_ZERO]=1300000;
     CHECK(bike_valid(&bike_conf)); set_voltage(1.5f);
     CHECK(fabsf(mc_interface_get_tot_current_in()-10.0f)<0.025f);
     bike_conf.v[BIKE_ADC2_V2]=1300; CHECK(!bike_valid(&bike_conf));
     bike_conf.v[BIKE_ADC2_V2]=1500; bike_conf.v[BIKE_ADC2_I2]=0; CHECK(!bike_valid(&bike_conf));
+    bike_conf=bike_defaults(); bike_conf.v[BIKE_ADC2_ZERO]=1340000;
+    set_voltage(1.34f); CHECK(fabsf(mc_interface_get_tot_current_in())<0.025f);
+    set_voltage(1.55f); CHECK(fabsf(mc_interface_get_tot_current_in()-8.8f)<0.025f);
     puts("ACS758: calibration, signed readings, all production current getters, idle-load preservation and ADC2 brake reservation passed.");
     return 0;
 }

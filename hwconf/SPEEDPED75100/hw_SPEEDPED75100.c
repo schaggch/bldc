@@ -18,13 +18,14 @@
 #define SPEEDPED_STOCK_REVISION 0x53503101U
 float speedped_battery_current_read(void) {
     syssts_t status=chSysGetStatusAndLockX();
+    unsigned zero=bike_conf.v[BIKE_ADC2_ZERO];
     unsigned v1=bike_conf.v[BIKE_ADC2_V1], i1=bike_conf.v[BIKE_ADC2_I1];
     unsigned v2=bike_conf.v[BIKE_ADC2_V2], i2=bike_conf.v[BIKE_ADC2_I2];
     chSysRestoreStatusX(status);
     float voltage=ADC_VOLTS(ADC_IND_EXT2);
     // Before configuration loading, retain the historical calibrated defaults.
     if(v2<=v1) return speedped_battery_current_from_voltage(voltage);
-    return speedped_battery_current_from_points(voltage,v1,i1,v2,i2);
+    return speedped_battery_current_from_points(voltage,zero,v1,i1,v2,i2);
 }
 
 static bool speedped_stock_installed(void) {

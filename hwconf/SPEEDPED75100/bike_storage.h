@@ -14,6 +14,7 @@ static bool bike_legacy;
 static unsigned bike_legacy_slot;
 #define BIKE_SLOT_WORDS 16U
 #define BIKE_RECORD_WORDS 13U
+#define BIKE_PRE_ZERO_SIGNATURE 0x79b111c3U
 #define BIKE_PRE_ADC2_SIGNATURE 0x2ea07d4cU
 #define BIKE_LEGACY_SIGNATURE 0xd31eefe0U
 #define BIKE_PRE_DUTY_SIGNATURE 0x1b98fcefU
@@ -53,7 +54,7 @@ static bool bike_read_slot(unsigned slot,bike_config *cfg,uint32_t *sequence) {
         eeprom_var v; if(!conf_general_read_eeprom_var_hw(&v,slot*BIKE_SLOT_WORDS+i)) return false;
         w[i]=v.as_u32;
     }
-    if (w[0]==BIKE_SIGNATURE) {
+    if (w[0]==BIKE_SIGNATURE || w[0]==BIKE_PRE_ZERO_SIGNATURE) {
         for(unsigned i=11;i<BIKE_RECORD_WORDS;i++) {
             eeprom_var v; if(!conf_general_read_eeprom_var_hw(&v,slot*BIKE_SLOT_WORDS+i)) return false;
             w[i]=v.as_u32;
@@ -71,9 +72,17 @@ static bool bike_read_slot(unsigned slot,bike_config *cfg,uint32_t *sequence) {
     cfg->v[BIKE_SH_DUTY]=w[8]&255; cfg->v[BIKE_SOUND_START]=(w[8]>>8)&1;
     cfg->v[BIKE_SOUND_RIDE]=(w[8]>>9)&1; cfg->v[BIKE_SOUND_VOLUME]=w[8]>>16;
     cfg->v[BIKE_SOUND_TEMPO]=w[9];
-    if(w[0]==BIKE_SIGNATURE) {
+    if(w[0]==BIKE_SIGNATURE || w[0]==BIKE_PRE_ZERO_SIGNATURE) {
         cfg->v[BIKE_ADC2_V1]=w[10]&65535; cfg->v[BIKE_ADC2_I1]=w[10]>>16;
         cfg->v[BIKE_ADC2_V2]=w[11]&65535; cfg->v[BIKE_ADC2_I2]=w[11]>>16;
+    }
+    if(w[0]==BIKE_SIGNATURE) cfg->v[BIKE_ADC2_ZERO]=w[4];
+    if(w[0]==BIKE_PRE_ZERO_SIGNATURE && cfg->v[BIKE_ADC2_I2]>cfg->v[BIKE_ADC2_I1]) {
+        double zero=(double)cfg->v[BIKE_ADC2_V1]*1000.0-
+            (double)cfg->v[BIKE_ADC2_I1]*((double)cfg->v[BIKE_ADC2_V2]-cfg->v[BIKE_ADC2_V1])*1000.0/
+            ((double)cfg->v[BIKE_ADC2_I2]-cfg->v[BIKE_ADC2_I1]);
+        if(zero<100000.0 || zero>3200000.0) return false;
+        cfg->v[BIKE_ADC2_ZERO]=(uint32_t)(zero+0.5);
     }
     return bike_valid(cfg);
 }
@@ -137,7 +146,7 @@ static bool bike_store_config(bike_config c, bool configure) {
     uint32_t words[BIKE_RECORD_WORDS]={BIKE_SIGNATURE,bike_sequence+1};
     words[2]=c.v[BIKE_MM] | (c.v[BIKE_PULSES]<<16);
     words[3]=c.v[BIKE_PEDAL_KMH] | (c.v[BIKE_AH_KMH]<<8) | (c.v[BIKE_START]<<16) | (c.v[BIKE_MAGNETS]<<24);
-    words[4]=0; // Reserved legacy EEPROM word, no active configuration field.
+    words[4]=c.v[BIKE_ADC2_ZERO]; // Microvolts; legacy readers ignored this word.
     words[5]=c.v[BIKE_TIMEOUT] | (c.v[BIKE_DUTY]<<16) | (c.v[BIKE_NO_WHEEL_SECONDS]<<17);
     words[6]=c.v[BIKE_NO_WHEEL_WATTS]; words[7]=c.v[BIKE_NO_WHEEL_ERPM];
     words[8]=c.v[BIKE_SH_DUTY] | (c.v[BIKE_SOUND_START]<<8) | (c.v[BIKE_SOUND_RIDE]<<9) | (c.v[BIKE_SOUND_VOLUME]<<16);

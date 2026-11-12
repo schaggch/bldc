@@ -319,25 +319,32 @@ Hardware-Abgleich der Kalibrierung und Funktion unter Last sind noch erforderlic
 
 ## ADC2-Kalibrierung im SPEEDPED-Tab (R4)
 
-Neuer Reiter **ADC2 Kalibrierung** in Windows und Android: zwei Messpunkte
-mit Spannung in Volt (direkt nach dem 3k/3k-Spannungsteiler an ADC2) und
-extern gemessenem Batteriestrom in Ampere. Drei Nachkommastellen.
-Vorgaben: 1.340 V / 1.200 A und 1.550 V / 10.000 A.
-Die bisher fest eingebaute Kalibrierung ist damit durch diese gespeicherten
-Messpunkte ersetzt. Read liest, Read Default laedt Vorgaben, Write speichert
-alle vier Werte gemeinsam und stoppt dabei wie bisher den ADC-Antrieb.
-Punkt 2 muss mindestens 0.010 V und 0.100 A oberhalb von Punkt 1 liegen;
-ungueltige Paare werden von der Firmware ohne Aenderung abgewiesen.
-Keine automatische Nullung und kein Stromnullsetzen beim Motorstillstand.
-Die Kennlinie gilt sofort auch fuer Telemetrie und Strombegrenzung.
+Neuer Reiter **ADC2 Kalibrierung** in Windows und Android:
+- **ADC2 nullen (nur bei 0 A)** fragt eine aktuelle ADC2-Spannung ab und
+  uebernimmt sie als Nullpunkt in den Editor. Nur bei wirklich 0 A durch
+  den Sensor verwenden: vorhandene Nebenverbraucher werden sonst weggenullt.
+- Zwei Messpunkte mit Spannung in Volt direkt nach dem 3k/3k-Teiler an ADC2
+  und extern gemessenem Batteriestrom in Ampere. Sie bestimmen ausschliesslich
+  die Empfindlichkeit: mV/A = (V2-V1)*1000/(A2-A1).
+- Der Nullpunkt ist separat sichtbar und editierbar (V, sechs Nachkommastellen).
+  I[A] = (U_ADC2-U_null) * (A2-A1)/(V2-V1).
+- Vorgaben bleiben aequivalent zu bisher: Nullpunkt 1.311364 V,
+  Punkt 1 = 1.340 V / 1.200 A, Punkt 2 = 1.550 V / 10.000 A.
+- Nullen aendert nur den Editor. **Write** speichert Nullpunkt und Messpunkte
+  gemeinsam und stoppt dabei wie bisher den ADC-Antrieb. Read liest gespeicherte
+  Werte; Read Default laedt Vorgaben. Keine automatische Nullung.
+- Punkt 2 muss mindestens 0.010 V und 0.100 A oberhalb von Punkt 1 liegen.
+  Ungueltige Paare oder Nullpunkte ausserhalb 0.100..3.200 V werden abgewiesen.
+- Die gespeicherte Kennlinie gilt sofort auch fuer Telemetrie und Strombegrenzung.
 
-Custom-Konfiguration jetzt 20 Felder / 81 Byte mit neuer Signatur.
-Die vier Double-Felder werden als signed int32 mit Faktor 1000 uebertragen
-(mV bzw. mA, gespeicherter Bereich 0..60 A). Zwei abwechselnde EEPROM-Slots
-benoetigen je 13 Woerter, mit Signatur, Sequenz und Pruefsumme. Die bisherigen
-11-Wort-Datensaetze werden mit unveraenderten Fahr-/PAS-/Sound-Einstellungen
-und den bisherigen ADC2-Vorgaben gelesen; erst Write speichert das neue Format.
-Auch bei unterbrochener Migration bleibt der vorherige Datensatz erhalten.
-Der Installationsmarker an Adresse 31 bleibt unveraendert.
-Passendes neues Tool verwenden; die neue Kalibrierung verlangt keine
-Aenderung der normalen BT-Batteriestrom-Telegramme.
+Custom-Konfiguration jetzt 21 Felder / 85 Byte mit neuer Signatur.
+Die vier Messpunkt-Double-Felder werden als signed int32 mit Faktor 1000
+uebertragen (mV bzw. mA, Bereich 0..60 A). adc2_zero verwendet Faktor 1000000
+(Mikrovolt). Zwei abwechselnde EEPROM-Slots benoetigen je 13 Woerter mit
+Signatur, Sequenz und Pruefsumme. Der Nullpunkt nutzt das bisher reservierte
+Wort 4. Aeltere 11-Wort-Datensaetze behalten Fahr-/PAS-/Sound-Einstellungen
+und erhalten die bisherigen ADC2-Vorgaben. Das vorlaeufige 81-Byte-Format
+wird ebenfalls gelesen, mit aus seinen Messpunkten abgeleitetem Nullpunkt.
+Unterbrochene Migration behaelt den vorherigen Datensatz. Installationsmarker
+an Adresse 31 bleibt unveraendert. Passendes neues Tool und Firmware verwenden.
+Normale BT-Batteriestrom-Telegramme bleiben unveraendert.

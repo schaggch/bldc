@@ -225,7 +225,7 @@
       <type>1</type>
       <vTx>8</vTx>
       <longName>ADC2 Punkt 1: Spannung</longName>
-      <description>Spannung direkt am ADC2 nach dem Spannungsteiler. Punkt 2 muss mindestens 0.010 V hoeher liegen. Write speichert beide Messpunkte.</description>
+      <description>Spannung direkt am ADC2 nach dem Spannungsteiler. Die zwei Messpunkte bestimmen die Steigung (mV/A); der Nullpunkt wird separat gesetzt. Write speichert alles.</description>
       <transmittable>1</transmittable>
       <suffix> V</suffix>
       <editorScale>1</editorScale>
@@ -281,6 +281,21 @@
       <editorDecimalsDouble>3</editorDecimalsDouble>
       <vTxDoubleScale>1000</vTxDoubleScale>
     </adc2_i2>
+    <adc2_zero>
+      <type>1</type>
+      <vTx>8</vTx>
+      <longName>ADC2 Nullpunkt</longName>
+      <description>Spannung bei 0 A. Mit ADC2 nullen aus der aktuellen Messung uebernehmen, anschliessend Write speichern. Nur bei tatsaechlich stromlosem Sensor nullen. Die zwei Messpunkte bestimmen nur die Empfindlichkeit.</description>
+      <transmittable>1</transmittable>
+      <suffix> V</suffix>
+      <editorScale>1</editorScale>
+      <valDouble>1.311364</valDouble>
+      <minDouble>0.1</minDouble>
+      <maxDouble>3.2</maxDouble>
+      <stepDouble>0.001</stepDouble>
+      <editorDecimalsDouble>6</editorDecimalsDouble>
+      <vTxDoubleScale>1000000</vTxDoubleScale>
+    </adc2_zero>
   </Params>
   <SerOrder>
     <ser>wheel_mm</ser>
@@ -303,6 +318,7 @@
     <ser>adc2_i1</ser>
     <ser>adc2_v2</ser>
     <ser>adc2_i2</ser>
+    <ser>adc2_zero</ser>
   </SerOrder>
   <Grouping>
     <group>
@@ -342,6 +358,7 @@
           <param>adc2_i1</param>
           <param>adc2_v2</param>
           <param>adc2_i2</param>
+          <param>adc2_zero</param>
         </subgroupParams>
       </subgroup>
     </group>

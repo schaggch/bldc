@@ -23,4 +23,5 @@
     <adc2_i1>1200</adc2_i1>
     <adc2_v2>1550</adc2_v2>
     <adc2_i2>10000</adc2_i2>
+    <adc2_zero>1311364</adc2_zero>
 </CustomConfiguration>

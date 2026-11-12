@@ -9,9 +9,9 @@ static inline float speedped_battery_current_from_voltage(float voltage) {
     return 1.2f + (voltage - 1.34f) * (8.8f / 0.21f);
 }
 static inline float speedped_battery_current_from_points(float voltage,
-        unsigned mv1, unsigned ma1, unsigned mv2, unsigned ma2) {
-    return ((float)ma1 + (voltage*1000.0f-(float)mv1)*
-        ((float)ma2-(float)ma1)/((float)mv2-(float)mv1))/1000.0f;
+        unsigned zero_uv, unsigned mv1, unsigned ma1, unsigned mv2, unsigned ma2) {
+    return (voltage-(float)zero_uv/1000000.0f)*
+        ((float)ma2-(float)ma1)/((float)mv2-(float)mv1);
 }
 static inline bool speedped_battery_voltage_valid(float voltage) {
     // Rail readings cannot represent the specified sensor/divider output.
